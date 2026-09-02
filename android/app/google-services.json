@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "226275419923",
+    "project_id": "jhamtaniAppQualityApp",
+    "storage_bucket": "jhamtaniAppQualityApp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226275419923:android:a91aee0b6a68ba87fd1ce6",
+        "android_client_info": {
+          "package_name": "com.jhamtaniApp.jhamtaniAppQualityApp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPFmh8bS1KgVSY_jBTVK8VicgjlTYa30U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

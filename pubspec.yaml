@@ -1,0 +1,75 @@
+name: jhamtani_app
+description: A new Flutter project.
+publish_to: "none" 
+
+version: 1.0.0+3
+
+environment:
+  sdk: ">=3.1.3 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.2
+  get: ^4.6.6
+  shared_preferences: ^2.2.2
+  flutter_inset_box_shadow: ^1.0.8
+  step_progress_indicator: ^1.0.2
+  image_picker: ^1.0.4
+  path_provider: ^2.0.15
+  image_painter: ^0.6.1
+  http:
+  dio: ^5.4.0
+  intl: ^0.19.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.0
+  animated_notch_bottom_bar: ^1.0.0
+  flutter_svg: ^2.0.9
+  syncfusion_flutter_pdfviewer:
+  onesignal_flutter: ^5.0.4
+  connectivity_plus: ^5.0.2
+  flutter_staggered_grid_view: ^0.7.0
+  flutter_keyboard_visibility: ^6.0.0
+  screenshot: ^3.0.0
+  crop_image: ^1.0.13
+  image: ^4.2.0
+  dropdown_search: ^5.0.6
+  logger: ^2.5.0
+  flutter_speed_dial: ^7.0.0
+  permission_handler: ^11.3.1
+  open_file: ^3.5.10
+  photo_view: ^0.15.0
+  flutter_image_compress: ^2.1.0
+  image_gallery_saver: ^2.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: "^0.14.4"
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  # image_path: "assets/images/logo2.JPG"
+  image_path: "assets/images/icon.png"
+
+
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+
+  fonts:
+    - family: Barlow
+      fonts:
+        - asset: assets/fonts/Barlow-Regular.ttf
+        - asset: assets/fonts/Barlow-SemiBold.ttf
+
+    - family: RethinkSans
+      fonts:
+        - asset: assets/fonts/RethinkSans-Regular.ttf
+        - asset: assets/fonts/RethinkSans-Bold.ttf
