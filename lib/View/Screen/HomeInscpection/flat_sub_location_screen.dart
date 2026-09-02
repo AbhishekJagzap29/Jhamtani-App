@@ -538,11 +538,13 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                                 observationCategory:
                                                     obs.observationCategory ??
                                                         '',
+                                                isOffline: isOffline || isFlatExistOffline,
                                               ),
                                             ).then(
                                               (value) {
                                                 log('isFlatExistOffline:::::::value:::::::::${isFlatExistOffline} : ${value}');
-                                                if (isFlatExistOffline) {
+                                                // if (isFlatExistOffline) {
+                                                if (isFlatExistOffline || isOffline || value == true) {
                                                   _refreshData();
                                                 }
                                               },

@@ -12,6 +12,7 @@ import 'package:jhamtani_app/View/Screen/HomeInscpection/flat_sub_location_contr
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -25,6 +26,7 @@ class AttachmentDialogPopup extends StatefulWidget {
   final int flatId;
   final int projectId;
   final String observationCategory;
+  final bool? isOffline;
 
   const AttachmentDialogPopup({
     Key? key,
@@ -37,6 +39,7 @@ class AttachmentDialogPopup extends StatefulWidget {
     required this.flatId,
     required this.projectId,
     required this.observationCategory,
+    this.isOffline,
   }) : super(key: key);
 
   @override
@@ -83,7 +86,7 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
       widget.observationData.isUpdated == true &&
       widget.observationData.syncStatus == "pending";
 
-  Future<bool> _isFlatExistInOffline() async {
+  bool _checkFlatExistInOffline() {
     String? existingData =
         preferences.getString(SharedPreference.hqiFlatsOfflineData) ?? '';
     if (existingData.isEmpty) {
@@ -91,31 +94,56 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
       return false;
     }
 
-    List<dynamic> decodedData = jsonDecode(existingData);
+    try {
+      List<dynamic> decodedData = jsonDecode(existingData);
 
-    List<List<OfflineHQIData>> allOfflineData = decodedData.map((sublist) {
-      if (sublist is List) {
-        return sublist.map<OfflineHQIData>((item) {
-          return OfflineHQIData.fromJson(Map<String, dynamic>.from(item));
-        }).toList();
-      }
-      return <OfflineHQIData>[];
-    }).toList();
+      List<List<OfflineHQIData>> allOfflineData = decodedData.map((sublist) {
+        if (sublist is List) {
+          return sublist.map<OfflineHQIData>((item) {
+            return OfflineHQIData.fromJson(Map<String, dynamic>.from(item));
+          }).toList();
+        }
+        return <OfflineHQIData>[];
+      }).toList();
 
-    for (var flatList in allOfflineData) {
-      for (var flat in flatList) {
-        for (var location in flat.locationData ?? []) {
-          if (location.locationId == widget.locationId) {
-            log('✅ Flat with ID ${widget.locationId} exists in offline data');
+      for (var flatList in allOfflineData) {
+        for (var flat in flatList) {
+          if (widget.flatId != 0 && flat.flatId == widget.flatId) {
             return true;
+          }
+          for (var location in flat.locationData ?? []) {
+            if (location.locationId == widget.locationId) {
+              log('✅ Flat with ID ${widget.locationId} exists in offline data');
+              return true;
+            }
           }
         }
       }
+    } catch (e) {
+      log('❌ Error checking offline flat: $e');
     }
 
     log('❌ Flat with ID ${widget.locationId} not found in offline data');
     return false;
   }
+
+  Future<bool> _hasInternetAccess() async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  bool get isOfflineMode =>
+      (widget.isOffline == true) ||
+      isFlatExistOffline ||
+      isNewlyAddedOffline ||
+      isUpdatedOffline;
 
   // 🔹 NEW: Update observation in localStorage
   Future<void> _updateObservationInLocalStorage() async {
@@ -244,6 +272,219 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
 
     log("🔹 Total unique images added: ${imgDataList.length}");
     return imgDataList;
+  }
+
+  // 🔹 Save observation changes locally to offline storage
+  Future<bool> _saveObservationOffline({
+    bool isMakerSubmitting = false,
+    bool isCheckerApproving = false,
+    bool isCheckerResubmitting = false,
+  }) async {
+    try {
+      log('🔹 Saving observation offline for observationId: ${widget.observationId}');
+      String? existingData =
+          preferences.getString(SharedPreference.hqiFlatsOfflineData) ?? '';
+      if (existingData.isEmpty) {
+        log('❌ No offline data found');
+        return false;
+      }
+
+      List<dynamic> decodedData = jsonDecode(existingData);
+      List<List<OfflineHQIData>> allOfflineData = decodedData.map((sublist) {
+        if (sublist is List) {
+          return sublist.map<OfflineHQIData>((item) {
+            return OfflineHQIData.fromJson(Map<String, dynamic>.from(item));
+          }).toList();
+        }
+        return <OfflineHQIData>[];
+      }).toList();
+
+      bool observationUpdated = false;
+
+      DateTime inputDate = DateTime.tryParse(dateController.text.trim()) ??
+          (widget.observationData.date ?? DateTime.now());
+      DateTime inputTargetDate =
+          DateTime.tryParse(targetDateController.text.trim()) ??
+              (widget.observationData.targetDate ?? DateTime.now());
+      List<ObservationImageData> updatedImgData = _createUpdatedImageData();
+
+      for (var flatList in allOfflineData) {
+        for (var flat in flatList) {
+          for (var location in flat.locationData ?? []) {
+            if (location.locationId == widget.locationId) {
+              for (int i = 0; i < (location.observations ?? []).length; i++) {
+                var observation = location.observations![i];
+                bool isMatch = false;
+                if (widget.observationId != 0) {
+                  isMatch = (observation.observationId == widget.observationId);
+                } else {
+                  isMatch = (observation.observationId == 0 &&
+                      (observation.description ==
+                              widget.observationData.description ||
+                          observation.name == widget.observationData.name ||
+                          observation.isNewlyAdded == true));
+                }
+
+                if (isMatch) {
+                  String newState = observation.state ?? '';
+                  bool newMakerSubmitted = observation.makerSubmitted ?? false;
+                  bool newCheckerSubmitted =
+                      observation.checkerSubmitted ?? false;
+
+                  if (isMakerSubmitting) {
+                    newMakerSubmitted = true;
+                    newState = "in_review_by_checker";
+                    if ((location.makerPendingCount ?? 0) > 0) {
+                      location.makerPendingCount =
+                          location.makerPendingCount! - 1;
+                    }
+                    location.checkerPendingCount =
+                        (location.checkerPendingCount ?? 0) + 1;
+                  } else if (isCheckerApproving) {
+                    newCheckerSubmitted = true;
+                    newState = "completed";
+                    if ((location.checkerPendingCount ?? 0) > 0) {
+                      location.checkerPendingCount =
+                          location.checkerPendingCount! - 1;
+                    }
+                    if ((location.pendingObservationCount ?? 0) > 0) {
+                      location.pendingObservationCount =
+                          location.pendingObservationCount! - 1;
+                    }
+                  } else if (isCheckerResubmitting) {
+                    newCheckerSubmitted = true;
+                    newMakerSubmitted = false;
+                    newState = "correction_by_maker";
+                    location.makerPendingCount =
+                        (location.makerPendingCount ?? 0) + 1;
+                    if ((location.checkerPendingCount ?? 0) > 0) {
+                      location.checkerPendingCount =
+                          location.checkerPendingCount! - 1;
+                    }
+                  }
+
+                  location.observations![i] = observation.copyWith(
+                    remark: remarkController.text.trim(),
+                    description: descriptionController.text.trim(),
+                    date: inputDate,
+                    targetDate: inputTargetDate,
+                    makerSubmitted: newMakerSubmitted,
+                    checkerSubmitted: newCheckerSubmitted,
+                    state: newState,
+                    isUpdated: true,
+                    lastModified: DateTime.now(),
+                    syncStatus: "pending",
+                    syncErrorMessage: null,
+                    imgData: updatedImgData,
+                    observationCategory: selectedObservationCategory ??
+                        observation.observationCategory,
+                    impactType: selectedImpactType ?? observation.impactType,
+                  );
+
+                  observationUpdated = true;
+                  log('✅ Observation ${widget.observationId} updated offline: makerSubmitted=$newMakerSubmitted, checkerSubmitted=$newCheckerSubmitted, state=$newState');
+                  break;
+                }
+              }
+              if (observationUpdated) break;
+            }
+          }
+          if (observationUpdated) break;
+        }
+        if (observationUpdated) break;
+      }
+
+      // Fallback matching by observationId alone if not matched under locationId
+      if (!observationUpdated && widget.observationId != 0) {
+        log('⚠️ Trying fallback search by observationId only...');
+        for (var flatList in allOfflineData) {
+          for (var flat in flatList) {
+            for (var location in flat.locationData ?? []) {
+              for (int i = 0; i < (location.observations ?? []).length; i++) {
+                var observation = location.observations![i];
+                if (observation.observationId == widget.observationId) {
+                  String newState = observation.state ?? '';
+                  bool newMakerSubmitted = observation.makerSubmitted ?? false;
+                  bool newCheckerSubmitted =
+                      observation.checkerSubmitted ?? false;
+
+                  if (isMakerSubmitting) {
+                    newMakerSubmitted = true;
+                    newState = "in_review_by_checker";
+                    if ((location.makerPendingCount ?? 0) > 0) {
+                      location.makerPendingCount =
+                          location.makerPendingCount! - 1;
+                    }
+                    location.checkerPendingCount =
+                        (location.checkerPendingCount ?? 0) + 1;
+                  } else if (isCheckerApproving) {
+                    newCheckerSubmitted = true;
+                    newState = "completed";
+                    if ((location.checkerPendingCount ?? 0) > 0) {
+                      location.checkerPendingCount =
+                          location.checkerPendingCount! - 1;
+                    }
+                    if ((location.pendingObservationCount ?? 0) > 0) {
+                      location.pendingObservationCount =
+                          location.pendingObservationCount! - 1;
+                    }
+                  } else if (isCheckerResubmitting) {
+                    newCheckerSubmitted = true;
+                    newMakerSubmitted = false;
+                    newState = "correction_by_maker";
+                    location.makerPendingCount =
+                        (location.makerPendingCount ?? 0) + 1;
+                    if ((location.checkerPendingCount ?? 0) > 0) {
+                      location.checkerPendingCount =
+                          location.checkerPendingCount! - 1;
+                    }
+                  }
+
+                  location.observations![i] = observation.copyWith(
+                    remark: remarkController.text.trim(),
+                    description: descriptionController.text.trim(),
+                    date: inputDate,
+                    targetDate: inputTargetDate,
+                    makerSubmitted: newMakerSubmitted,
+                    checkerSubmitted: newCheckerSubmitted,
+                    state: newState,
+                    isUpdated: true,
+                    lastModified: DateTime.now(),
+                    syncStatus: "pending",
+                    syncErrorMessage: null,
+                    imgData: updatedImgData,
+                    observationCategory: selectedObservationCategory ??
+                        observation.observationCategory,
+                    impactType: selectedImpactType ?? observation.impactType,
+                  );
+                  observationUpdated = true;
+                  break;
+                }
+              }
+              if (observationUpdated) break;
+            }
+            if (observationUpdated) break;
+          }
+          if (observationUpdated) break;
+        }
+      }
+
+      if (observationUpdated) {
+        String updatedData = jsonEncode(allOfflineData
+            .map((sublist) => sublist.map((item) => item.toJson()).toList())
+            .toList());
+        await preferences.putString(
+            SharedPreference.hqiFlatsOfflineData, updatedData);
+        log('✅ localStorage updated successfully for offline observation');
+        return true;
+      } else {
+        log('⚠️ Observation with ID ${widget.observationId} not found in offline data');
+        return false;
+      }
+    } catch (e) {
+      log('❌ Error saving observation offline: $e');
+      return false;
+    }
   }
 
   // 🔹 NEW: Submit offline observation to API
@@ -489,9 +730,7 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      isFlatExistOffline = await _isFlatExistInOffline();
-    });
+    isFlatExistOffline = _checkFlatExistInOffline();
     addObservationData();
     isEditable = _computeIsEditable();
 
@@ -517,9 +756,7 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
   // 🔹 NEW: Handle field changes and update localStorage if needed
   void _onFieldChanged() {
     log('isFlatExistOffline::::::::::::::::$isFlatExistOffline : isEditable = $isEditable');
-    // Only update localStorage if this is an offline observation or if it's been modified
-    // if (isOfflineObservation || isModifiedOffline) {
-    if (isFlatExistOffline && isEditable) {
+    if ((isFlatExistOffline || isOfflineMode) && isEditable) {
       // Debounce the update to avoid too many localStorage writes
       Future.delayed(const Duration(milliseconds: 500), () {
         _updateObservationInLocalStorage();
@@ -528,58 +765,30 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
   }
 
   bool _computeIsEditable() {
-    // Log entry and key info for debugging
     log("🔍 Computing if observation is editable → userType: $userType, isNewlyAddedOffline: $isNewlyAddedOffline, isUpdatedOffline: $isUpdatedOffline");
 
-    // Case 1: NEW OFFLINE observation → always editable
-    if (isNewlyAddedOffline) {
-      log("✅ Case 1: NEW OFFLINE observation → Editable");
+    final bool isMaker = (userType?.contains("hqi_maker") ?? false);
+    final bool isChecker =
+        (userType == "hqi_checker" || userType == "hqi_approver");
+
+    if (isMaker) {
+      if (widget.observationData.makerSubmitted == true ||
+          widget.observationData.state == "in_review_by_checker") {
+        log("⛔ Maker already submitted → Not Editable");
+        return false;
+      }
+      log("✅ Maker can edit → Editable");
+      return true;
+    } else if (isChecker) {
+      if (widget.observationData.state == "completed") {
+        log("⛔ Checker already completed → Not Editable");
+        return false;
+      }
+      log("✅ Checker can edit → Editable");
       return true;
     }
 
-    // Case 2: UPDATED OFFLINE observation
-    else if (isUpdatedOffline) {
-      log("🔹 Case 2: UPDATED OFFLINE observation");
-      if (widget.observationData.checkerSubmitted == true &&
-          widget.observationData.makerSubmitted != true &&
-          (userType?.contains("hqi_maker") ?? false)) {
-        // userType == "hqi_maker") {
-        log("✅ Maker resubmitting → Editable");
-        return true;
-      } else if (widget.observationData.checkerSubmitted != true &&
-          (userType == "hqi_checker" || userType == "hqi_approver")) {
-        log("✅ Checker/Approver approving → Editable");
-        return true;
-      } else {
-        log("❌ Updated offline but conditions not met → Not Editable");
-        return false;
-      }
-    }
-
-    // Case 3: ONLINE observation
-    else {
-      log("🔹 Case 3: ONLINE observation");
-      if (widget.observationData.checkerSubmitted == true &&
-          widget.observationData.makerSubmitted != true &&
-          (userType?.contains("hqi_maker") ?? false)) {
-        //  userType == "hqi_maker") {
-        log("✅ Maker resubmitting online → Editable");
-        return true;
-      } else if (widget.observationData.checkerSubmitted != true &&
-          (userType == "hqi_checker" || userType == "hqi_approver")) {
-        log("✅ Checker/Approver approving online → Editable");
-        return true;
-      } else if (((userType?.contains("hqi_maker") ?? false) &&
-              widget.observationData.state == "in_review_by_checker") ||
-          ((userType == "hqi_checker" || userType == "hqi_approver") &&
-              widget.observationData.state == "completed")) {
-        log("⛔ Already submitted → Not Editable");
-        return false;
-      } else {
-        log("❌ Online observation conditions not met → Not Editable");
-        return false;
-      }
-    }
+    return false;
   }
 
   // 🔹 NEW: Check if observation needs to be submitted (offline observation)
@@ -598,100 +807,186 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
       widget.observationData.isUpdated == true &&
       widget.observationData.syncStatus == "pending";
 
-  // 🔹 NEW: Handle offline observation submission based on conditions
-  Future<void> _handleOfflineSubmission() async {
-    if (isNewlyAddedOffline) {
-      // 🔹 New observation: Call /flat/observation/return-to-maker API
-      await _submitOfflineObservation();
-    } else if (isUpdatedOffline) {
-      // 🔹 Updated observation: Check user type and conditions
-      if (widget.observationData.checkerSubmitted == true &&
-          widget.observationData.makerSubmitted != true &&
-          (userType?.contains("hqi_maker") ?? false)) {
-        //userType == "hqi_maker") {
-        // 🔹 Maker resubmitting to checker: Call /flat/observation/resubmit-to-checker API
-        await _resubmitOfflineObservationToChecker();
-      } else if (widget.observationData.checkerSubmitted != true &&
-          (userType == "hqi_checker" || userType == "hqi_approver")) {
-        // 🔹 Checker/Approver: Call completeObservationByChecker or submitObservation based on conditions
-        await _handleCheckerApproverSubmission();
-      }
-    }
-  }
-
-  // 🔹 NEW: Resubmit offline observation to checker
-  Future<void> _resubmitOfflineObservationToChecker() async {
+  // 🔹 Maker submission (Offline-first with graceful online handling)
+  Future<void> _handleMakerSubmission() async {
+    setState(() => isLoading = true);
     try {
-      log('🔹 Resubmitting offline observation to checker...');
+      final bool offline = isOfflineMode || !await _hasInternetAccess();
 
-      setState(() {
-        isLoading = true;
-      });
+      if (offline) {
+        log('🔹 Maker submitting observation in OFFLINE mode...');
+        final bool saved =
+            await _saveObservationOffline(isMakerSubmitting: true);
+        if (saved) {
+          successSnackBar(
+              "Success", "Observation submitted successfully (Saved offline)");
+          Navigator.pop(context, true);
+        } else {
+          errorSnackBar("Error", "Failed to save observation offline");
+        }
+        return;
+      }
 
-      final imagePaths =
-          afterImageList.where((img) => File(img).existsSync()).toList();
+      // ONLINE submission:
+      log('🔹 Maker submitting observation ONLINE...');
+      final imagePaths = afterImageList
+          .where((img) => File(img).existsSync())
+          .toList();
 
-      String finalObservationCategory = (selectedObservationCategory != null &&
-              selectedObservationCategory!.isNotEmpty)
-          ? selectedObservationCategory!
-          : (widget.observationData.observationCategory ?? "");
-
-      log("🔹 FINAL observation_category: $finalObservationCategory");
-
-      print(
-          'afterImageList:::::::::67:::::${afterImageList.length}::${afterImageList}');
-      print('imagePaths:::::::::::78:::::${imagePaths}');
-      await attachmentController.resubmitObservationToChecker(
-        observationId: widget.observationId,
-        imageFiles: imagePaths,
-        remark: remarkController.text.trim(),
-        date: dateController.text.trim(),
-        targetDate: targetDateController.text.trim(),
-        locationId: widget.locationId,
-        description: descriptionController.text.trim(),
-        impactType: widget.observationData.impactType,
-        // impactType: selectedImpactType,
-      );
-
-      if (attachmentController.resubmitObservationResponse.status ==
-          Status.COMPLETE) {
-        // Mark as synced
-        await _markObservationAsSynced();
-        flatSubLocationController.fetchObservationform(
-          locationId: widget.locationId,
-          flatId: widget.flatId,
-          isFlatExistOffline: isFlatExistOffline,
-          observationId: widget.observationId,
-        );
-        successSnackBar("Success", "Observation resubmitted successfully");
-        Navigator.pop(context);
+      if (isNewlyAddedOffline) {
+        await _submitOfflineObservation();
       } else {
-        errorSnackBar(
-            "Error",
-            attachmentController.resubmitObservationResponse.message ??
-                "Resubmission failed");
+        await attachmentController.resubmitObservationToChecker(
+          observationId: widget.observationId,
+          imageFiles: imagePaths,
+          remark: remarkController.text.trim(),
+          date: dateController.text.trim(),
+          targetDate: targetDateController.text.trim(),
+          locationId: widget.locationId,
+          description: descriptionController.text.trim(),
+          impactType:
+              selectedImpactType ?? widget.observationData.impactType ?? "",
+        );
+
+        if (attachmentController.resubmitObservationResponse.status ==
+            Status.COMPLETE) {
+          await _markObservationAsSynced();
+          successSnackBar("Success", "Observation resubmitted successfully");
+          Navigator.pop(context, true);
+        } else {
+          final errorMsg =
+              attachmentController.resubmitObservationResponse.message ??
+                  "Resubmission failed";
+          if (errorMsg.contains("No Internet") ||
+              errorMsg.contains("SocketException")) {
+            log('⚠️ Online submission failed with network error, falling back to offline save...');
+            await _saveObservationOffline(isMakerSubmitting: true);
+            successSnackBar("Saved Offline",
+                "No internet access. Observation saved locally.");
+            Navigator.pop(context, true);
+          } else {
+            errorSnackBar("Error", errorMsg);
+          }
+        }
       }
     } catch (e) {
-      log('❌ Error resubmitting offline observation: $e');
-      errorSnackBar("Error", "Failed to resubmit observation: $e");
+      log("Error during maker submission: $e");
+      if (e.toString().contains("No Internet") ||
+          e.toString().contains("SocketException")) {
+        await _saveObservationOffline(isMakerSubmitting: true);
+        successSnackBar(
+            "Saved Offline", "No internet access. Observation saved locally.");
+        Navigator.pop(context, true);
+      } else {
+        errorSnackBar("Error", "Submission failed: $e");
+      }
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
-  // 🔹 NEW: Handle checker/approver submission for offline observations
-  Future<void> _handleCheckerApproverSubmission() async {
+  // 🔹 Checker approve (Offline-first with graceful online handling)
+  Future<void> _handleCheckerApprove() async {
+    setState(() => isLoadingReSubmit = true);
     try {
-      log('🔹 Handling checker/approver submission for offline observation...');
+      final bool offline = isOfflineMode || !await _hasInternetAccess();
 
-      setState(() {
-        isLoading = true;
-      });
+      if (offline) {
+        log('🔹 Checker approving observation in OFFLINE mode...');
+        final bool saved =
+            await _saveObservationOffline(isCheckerApproving: true);
+        if (saved) {
+          successSnackBar(
+              "Success", "Observation approved successfully (Saved offline)");
+          Navigator.pop(context, true);
+        } else {
+          errorSnackBar("Error", "Failed to save observation offline");
+        }
+        return;
+      }
 
-      // For now, use the same logic as online submission
-      // You can add specific conditions here if needed
+      // ONLINE approval:
+      log('🔹 Checker approving observation ONLINE...');
+      await attachmentController.completeObservationByChecker(
+        observationId: widget.observationId,
+        imageFiles: afterImageList
+            .where((e) => File(e).existsSync())
+            .map((e) => e)
+            .toList(),
+        remark: widget.observationData.remark ?? "",
+        date: dateController.text.trim(),
+        targetDate: targetDateController.text.trim(),
+        description: widget.observationData.description ?? '',
+        impactType: selectedImpactType ?? "",
+      );
+
+      if (attachmentController.completeObservationResponse.status ==
+          Status.COMPLETE) {
+        await _markObservationAsSynced();
+        successSnackBar("Success", "Observation approved successfully");
+        Navigator.pop(context, true);
+      } else {
+        final errorMsg =
+            attachmentController.completeObservationResponse.message ??
+                "Approval failed";
+        if (errorMsg.contains("No Internet") ||
+            errorMsg.contains("SocketException")) {
+          log('⚠️ Online approval failed with network error, falling back to offline save...');
+          await _saveObservationOffline(isCheckerApproving: true);
+          successSnackBar("Saved Offline",
+              "No internet access. Observation approved locally.");
+          Navigator.pop(context, true);
+        } else {
+          errorSnackBar("Error", errorMsg);
+        }
+      }
+    } catch (e) {
+      log("Error during checker approval: $e");
+      if (e.toString().contains("No Internet") ||
+          e.toString().contains("SocketException")) {
+        await _saveObservationOffline(isCheckerApproving: true);
+        successSnackBar(
+            "Saved Offline", "No internet access. Observation approved locally.");
+        Navigator.pop(context, true);
+      } else {
+        errorSnackBar("Error", "Approval failed: $e");
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoadingReSubmit = false);
+      }
+    }
+  }
+
+  // 🔹 Checker resubmit to maker (Offline-first with graceful online handling)
+  Future<void> _handleCheckerResubmit() async {
+    setState(() => isLoading = true);
+    try {
+      final bool offline = isOfflineMode || !await _hasInternetAccess();
+
+      if (offline) {
+        log('🔹 Checker resubmitting to maker in OFFLINE mode...');
+        final bool saved =
+            await _saveObservationOffline(isCheckerResubmitting: true);
+        if (saved) {
+          successSnackBar("Success",
+              "Observation resubmitted to maker (Saved offline)");
+          Navigator.pop(context, true);
+        } else {
+          errorSnackBar("Error", "Failed to save observation offline");
+        }
+        return;
+      }
+
+      // ONLINE resubmission:
+      log('🔹 Checker resubmitting to maker ONLINE...');
+      List<String> afterImagesToSubmit =
+          afterImageList.where((img) => File(img).existsSync()).toList();
+      List<String> beforeImagesToSubmit =
+          beforeImageList.where((img) => File(img).existsSync()).toList();
+
       await addObservationController.submitObservation(
         category: widget.observationData.issueCategoryId.toString(),
         issueType: widget.observationData.issueTypeId.toString(),
@@ -706,49 +1001,46 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
         state: widget.state,
         userId: widget.observationData.userId.toString(),
         observationCategory: widget.observationData.observationCategory,
-        //  impactType: selectedImpactType,
-        // ?? widget.observationData.impactType ?? "",
         impactType: widget.observationData.impactType,
-        beforeImages: beforeImageList
-            .where((e) => File(e).existsSync())
-            .map((e) => File(e))
-            .toList(),
-        afterImages: afterImageList
-            .where((e) => File(e).existsSync())
-            .map((e) => File(e))
-            .toList(),
+        beforeImages: beforeImagesToSubmit.map((e) => File(e)).toList(),
+        afterImages: afterImagesToSubmit.map((e) => File(e)).toList(),
       );
-      log('beforeImageList::::::::::::::1111::${beforeImageList.length} : ${beforeImageList}');
-      log('afterImageList:::::::::::::::1111:${afterImageList.length} : ${afterImageList}');
-      print(
-          'beforeImageList.where((e) => File(e).existsSync()).map((e) => File(e)).toList()::::::::::::::::${beforeImageList.where((e) => File(e).existsSync()).map((e) => File(e)).toList().length} : ${beforeImageList.where((e) => File(e).existsSync()).map((e) => File(e)).toList()}');
-      print(
-          'afterImageList.where((e) => File(e).existsSync()).map((e) => File(e)).toList()::::::::::::::::${afterImageList.where((e) => File(e).existsSync()).map((e) => File(e)).toList().length} : ${afterImageList.where((e) => File(e).existsSync()).map((e) => File(e)).toList()}');
+
       if (addObservationController.submitObservationResponse.status ==
           Status.COMPLETE) {
-        // Mark as synced
         await _markObservationAsSynced();
-        flatSubLocationController.fetchObservationform(
-          locationId: widget.locationId,
-          flatId: widget.flatId,
-          isFlatExistOffline: isFlatExistOffline,
-          observationId: widget.observationId,
-        );
-        successSnackBar("Success", "Observation submitted successfully");
-        Navigator.pop(context);
+        successSnackBar("Success", "Observation resubmitted successfully");
+        Navigator.pop(context, true);
       } else {
-        errorSnackBar(
-            "Error",
+        final errorMsg =
             addObservationController.submitObservationResponse.message ??
-                "Submission failed");
+                "Submission failed";
+        if (errorMsg.contains("No Internet") ||
+            errorMsg.contains("SocketException")) {
+          log('⚠️ Online resubmit failed with network error, falling back to offline save...');
+          await _saveObservationOffline(isCheckerResubmitting: true);
+          successSnackBar("Saved Offline",
+              "No internet access. Observation resubmitted locally.");
+          Navigator.pop(context, true);
+        } else {
+          errorSnackBar("Error", errorMsg);
+        }
       }
     } catch (e) {
-      log('❌ Error in checker/approver submission: $e');
-      errorSnackBar("Error", "Failed to submit observation: $e");
+      log("Error during checker resubmit: $e");
+      if (e.toString().contains("No Internet") ||
+          e.toString().contains("SocketException")) {
+        await _saveObservationOffline(isCheckerResubmitting: true);
+        successSnackBar("Saved Offline",
+            "No internet access. Observation resubmitted locally.");
+        Navigator.pop(context, true);
+      } else {
+        errorSnackBar("Error", "Submission failed: $e");
+      }
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -839,11 +1131,6 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
     final h = MediaQuery.of(context).size.height;
     final w = MediaQuery.of(context).size.width;
 
-    int beforeRows = (beforeImageList.length / 3).ceil();
-    double beforeImageHeight = beforeImageList.isEmpty ? 100 : beforeRows * 110;
-
-    int afterRows = (afterImageList.length / 3).ceil();
-    double afterImageHeight = afterImageList.isEmpty ? 100 : afterRows * 110;
     print(
         'widget.visitDetails.sequence::::::::::::::::${widget.visitDetails.sequence} = ${widget.observationData.makerSubmitted} = ${widget.observationData.checkerSubmitted}');
     return GetBuilder<AttachmentController>(builder: (controller) {
@@ -926,7 +1213,9 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
                     SizedBox(height: h * 0.008),
                     buildLabel("Before Photo"),
                     Container(
-                      height: beforeImageList.isEmpty ? 100 : beforeImageHeight,
+                      height: beforeImageList.isEmpty
+                          ? 100
+                          : ((beforeImageList.length / 3).ceil() * 110.0),
 
                       // Container(
                       //   height: h * 0.35,
@@ -1344,314 +1633,57 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
                     ),
                     const SizedBox(height: 16),
 
-                    // 🔹 UPDATED: Handle offline observations and regular submissions based on sync status
-                    if (isNewlyAddedOffline) ...[
-                      // 🔹 New observation: Always call /flat/observation/return-to-maker API
-                      buildActionButton("Submit", () async {
-                        setState(() {
-                          isLoading = true;
-                        });
-                        await _handleOfflineSubmission();
-                        setState(() {
-                          isLoading = false;
-                        });
-                      }),
-                    ] else if (isUpdatedOffline) ...[
-                      // 🔹 Updated observation: Check user type and conditions
-                      if (widget.observationData.checkerSubmitted == true &&
-                          widget.observationData.makerSubmitted != true &&
-                          // userType == "hqi_maker")
-
-                          (userType?.contains("hqi_maker") ?? false)) ...[
-                        // 🔹 Maker resubmitting to checker: Call /flat/observation/resubmit-to-checker API
-                        buildActionButton("Update & Resubmit", () async {
-                          setState(() {
-                            isLoading = true;
-                          });
-                          await _handleOfflineSubmission();
-                          setState(() {
-                            isLoading = false;
-                          });
-                        }),
-                      ] else if (widget.observationData.checkerSubmitted !=
-                              true &&
-                          (userType == "hqi_checker" ||
-                              userType == "hqi_approver")) ...[
-                        // 🔹 Checker/Approver: Show both Approve and Submit buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: buildActionButton2("Approve", () async {
-                                setState(() {
-                                  isLoadingReSubmit = true;
-                                });
-                                await attachmentController
-                                    .completeObservationByChecker(
-                                  observationId: widget.observationId,
-                                  imageFiles: afterImageList
-                                      .where((e) => File(e).existsSync())
-                                      .map((e) => e)
-                                      .toList(),
-                                  remark: widget.observationData.remark ?? "",
-                                  date: dateController.text.trim(),
-                                  targetDate: targetDateController.text.trim(),
-                                  description:
-                                      widget.observationData.description ?? '',
-                                  //  observationCategory: selectedObservationCategory ?? "",
-                                  impactType: selectedImpactType ?? "",
-                                );
-                                if (attachmentController
-                                        .completeObservationResponse.status ==
-                                    Status.COMPLETE) {
-                                  await _markObservationAsSynced();
-                                  flatSubLocationController
-                                      .fetchObservationform(
-                                    locationId: widget.locationId,
-                                    flatId: widget.flatId,
-                                    isFlatExistOffline: isFlatExistOffline,
-                                    observationId: widget.observationId,
-                                  );
-                                  successSnackBar("Success",
-                                      "Observation submitted successfully");
-                                  Navigator.pop(context);
-                                } else if (attachmentController
-                                        .completeObservationResponse.status ==
-                                    Status.ERROR) {
-                                  log("Error submitting observation: ${attachmentController.completeObservationResponse.message}");
-                                  errorSnackBar(
-                                      "Error",
-                                      attachmentController
-                                              .completeObservationResponse
-                                              .message ??
-                                          "Submission failed");
-                                }
-                                setState(() {
-                                  isLoadingReSubmit = false;
-                                });
-                              }),
-                            ),
-                            const SizedBox(width: 10),
-                            if (widget.visitDetails.sequence != 3)
-                              Expanded(
-                                child: buildActionButton("Update & Resubmit",
-                                    () async {
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-                                  await _handleOfflineSubmission();
-                                  setState(() {
-                                    isLoading = false;
-                                  });
-                                }),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ] else ...[
-                      // 🔹 ONLINE OBSERVATION: Handle regular online flow
-                      if (widget.observationData.checkerSubmitted == true &&
-                          widget.observationData.makerSubmitted != true &&
-                          (userType?.contains("hqi_maker") ?? false)) ...[
-                        //  userType == "hqi_maker") ...[
-                        buildActionButton("Resubmit", () async {
-                          setState(() {
-                            isLoading = true;
-                          });
-
-                          final imagePaths = afterImageList
-                              .where((img) => File(img).existsSync())
-                              .toList();
-                          print(
-                              'afterImageList:::::::::45:::::${afterImageList.length}::${afterImageList}');
-                          print('imagePaths:::::::::::34:::::${imagePaths}');
-
-                          await attachmentController
-                              .resubmitObservationToChecker(
-                            observationId: widget.observationId,
-                            imageFiles: imagePaths,
-                            remark: remarkController.text.trim(),
-                            date: dateController.text.trim(),
-                            targetDate: targetDateController.text.trim(),
-                            locationId: widget.locationId,
-                            description: descriptionController.text.trim(),
-                            impactType: selectedImpactType ?? "",
-                            //observationCategory: selectedObservationCategory ?? "",
-                            // observationCategory: (selectedObservationCategory !=
-                            //             null &&
-                            //         selectedObservationCategory!.isNotEmpty)
-                            //     ? selectedObservationCategory
-                            //     : widget.observationData.observationCategory,
-                          );
-                          if (attachmentController
-                                  .resubmitObservationResponse.status ==
-                              Status.COMPLETE) {
-                            flatSubLocationController.fetchObservationform(
-                              locationId: widget.locationId,
-                              flatId: widget.flatId,
-                              isFlatExistOffline: isFlatExistOffline,
-                              observationId: widget.observationId,
-                            );
-                            successSnackBar("Success",
-                                "Observation resubmitted successfully");
-                            Navigator.pop(context);
-                          } else if (attachmentController
-                                  .resubmitObservationResponse.status ==
-                              Status.ERROR) {
-                            log("Error reSubmitting observation: ${attachmentController.resubmitObservationResponse.message}");
-                            errorSnackBar(
-                                "Error",
-                                attachmentController
-                                        .resubmitObservationResponse.message ??
-                                    "Resubmission failed");
-                          }
-                          setState(() {
-                            isLoading = false;
-                          });
-                        }),
-                      ] else if (widget.observationData.checkerSubmitted !=
-                              true &&
-                          (userType == "hqi_checker" ||
-                              userType == "hqi_approver")) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: buildActionButton2("Approve", () async {
-                                setState(() {
-                                  isLoadingReSubmit = true;
-                                });
-                                await attachmentController
-                                    .completeObservationByChecker(
-                                  observationId: widget.observationId,
-                                  imageFiles: afterImageList
-                                      .where((e) => File(e).existsSync())
-                                      .map((e) => e)
-                                      .toList(),
-                                  remark: widget.observationData.remark ?? "",
-                                  date: dateController.text.trim(),
-                                  targetDate: targetDateController.text.trim(),
-                                  description:
-                                      widget.observationData.description ?? '',
-                                  //  observationCategory: selectedObservationCategory ?? "",
-                                  impactType: selectedImpactType ?? "",
-                                );
-                                if (attachmentController
-                                        .completeObservationResponse.status ==
-                                    Status.COMPLETE) {
-                                  flatSubLocationController
-                                      .fetchObservationform(
-                                    locationId: widget.locationId,
-                                    flatId: widget.flatId,
-                                    isFlatExistOffline: isFlatExistOffline,
-                                    observationId: widget.observationId,
-                                  );
-                                  successSnackBar("Success",
-                                      "Observation approved successfully");
-                                  Navigator.pop(context);
-                                } else if (attachmentController
-                                        .completeObservationResponse.status ==
-                                    Status.ERROR) {
-                                  log("Error approved observation: ${attachmentController.completeObservationResponse.message}");
-                                  errorSnackBar(
-                                      "Error",
-                                      attachmentController
-                                              .completeObservationResponse
-                                              .message ??
-                                          "Submission failed");
-                                }
-                                setState(() {
-                                  isLoadingReSubmit = false;
-                                });
-                              }),
-                            ),
-
-                            const SizedBox(width: 10),
-                            if (widget.visitDetails.sequence != 3)
-                              Expanded(
-                                child: buildActionButton("Resubmit", () async {
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-                                  await addObservationController
-                                      .submitObservation(
-                                    category: widget
-                                        .observationData.issueCategoryId
-                                        .toString(),
-                                    issueType: widget
-                                        .observationData.issueTypeId
-                                        .toString(),
-                                    description:
-                                        descriptionController.text.trim(),
-                                    impact: 'low',
-                                    date: dateController.text.trim(),
-                                    locationId: widget.locationId,
-                                    name: locationName ??
-                                        locationController.text.trim(),
-                                    remark: remarkController.text.trim(),
-                                    observationId: widget.observationId,
-                                    targetDate:
-                                        targetDateController.text.trim(),
-
-                                    state: widget.state,
-                                    userId: widget.observationData.userId
-                                        .toString(),
-                                    beforeImages: beforeImageList
-                                        .where((e) => File(e).existsSync())
-                                        .map((e) => File(e))
-                                        .toList(),
-                                    afterImages: afterImageList
-                                        .where((e) => File(e).existsSync())
-                                        .map((e) => File(e))
-                                        .toList(),
-                                    // observationCategory: widget
-                                    //     .observationData.observationCategory,
-                                              impactType : widget.observationData.impactType,
-
-                                    
-                                  );
-                                  if (addObservationController
-                                          .submitObservationResponse.status ==
-                                      Status.COMPLETE) {
-                                    flatSubLocationController
-                                        .fetchObservationform(
-                                      locationId: widget.locationId,
-                                      flatId: widget.flatId,
-                                      isFlatExistOffline: isFlatExistOffline,
-                                      observationId: widget.observationId,
-                                    );
-                                    successSnackBar("Success",
-                                        "Observation submitted successfully");
-                                    Navigator.pop(context);
-                                  } else if (addObservationController
-                                          .submitObservationResponse.status ==
-                                      Status.ERROR) {
-                                    log("Error submitted observation: ${addObservationController.submitObservationResponse.message}");
-                                    errorSnackBar(
-                                        "Error",
-                                        addObservationController
-                                                .submitObservationResponse
-                                                .message ??
-                                            "Submission failed");
-                                  }
-                                  setState(() {
-                                    isLoading = false;
-                                  });
-                                }),
-                              ),
-                          ],
-                        ),
-                      ] else if ((
-                              //userType == "hqi_maker"
-                              (userType?.contains("hqi_maker") ?? false) &&
-                                  widget.observationData.state ==
-                                      "in_review_by_checker") ||
-                          ((userType == "hqi_checker" ||
-                                  userType == "hqi_approver") &&
-                              widget.observationData.state == "completed")) ...[
+                    // 🔹 Submission action buttons
+                    if (userType?.contains("hqi_maker") ?? false) ...[
+                      if (widget.observationData.makerSubmitted == true ||
+                          widget.observationData.state ==
+                              "in_review_by_checker") ...[
                         buildActionButton("Already Submitted", () {}),
                       ] else ...[
+                        buildActionButton(
+                          isNewlyAddedOffline
+                              ? "Submit"
+                              : (isUpdatedOffline
+                                  ? "Update & Resubmit"
+                                  : "Resubmit"),
+                          () async => await _handleMakerSubmission(),
+                        ),
+                      ],
+                    ] else if (userType == "hqi_checker" ||
+                        userType == "hqi_approver") ...[
+                      if (widget.observationData.state == "completed") ...[
                         buildActionButton("Already Submitted", () {}),
-                      ]
-                    ]
+                      ] else if (widget.observationData.checkerSubmitted !=
+                              true ||
+                          widget.observationData.state ==
+                              "in_review_by_checker") ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: buildActionButton2(
+                                "Approve",
+                                () async => await _handleCheckerApprove(),
+                              ),
+                            ),
+                            if (widget.visitDetails.sequence != 3) ...[
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: buildActionButton(
+                                  (isNewlyAddedOffline || isUpdatedOffline)
+                                      ? "Update & Resubmit"
+                                      : "Resubmit",
+                                  () async => await _handleCheckerResubmit(),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ] else ...[
+                        buildActionButton("Already Submitted", () {}),
+                      ],
+                    ] else ...[
+                      buildActionButton("Already Submitted", () {}),
+                    ],
                   ],
                 ),
               ),
