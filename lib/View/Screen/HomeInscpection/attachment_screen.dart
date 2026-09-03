@@ -765,23 +765,28 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
   }
 
   bool _computeIsEditable() {
-    log("🔍 Computing if observation is editable → userType: $userType, isNewlyAddedOffline: $isNewlyAddedOffline, isUpdatedOffline: $isUpdatedOffline");
+    log("🔍 Computing if observation is editable → userType: $userType, syncStatus: ${widget.observationData.syncStatus}, isNewlyAddedOffline: $isNewlyAddedOffline, isUpdatedOffline: $isUpdatedOffline");
 
     final bool isMaker = (userType?.contains("hqi_maker") ?? false);
     final bool isChecker =
         (userType == "hqi_checker" || userType == "hqi_approver");
 
+    final bool isPendingSync = (widget.observationData.syncStatus == "pending" ||
+        isNewlyAddedOffline ||
+        isUpdatedOffline);
+
     if (isMaker) {
-      if (widget.observationData.makerSubmitted == true ||
-          widget.observationData.state == "in_review_by_checker") {
-        log("⛔ Maker already submitted → Not Editable");
+      if (!isPendingSync &&
+          (widget.observationData.makerSubmitted == true ||
+              widget.observationData.state == "in_review_by_checker")) {
+        log("⛔ Maker already submitted online → Not Editable");
         return false;
       }
       log("✅ Maker can edit → Editable");
       return true;
     } else if (isChecker) {
-      if (widget.observationData.state == "completed") {
-        log("⛔ Checker already completed → Not Editable");
+      if (!isPendingSync && widget.observationData.state == "completed") {
+        log("⛔ Checker already completed online → Not Editable");
         return false;
       }
       log("✅ Checker can edit → Editable");
@@ -1635,15 +1640,20 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
 
                     // 🔹 Submission action buttons
                     if (userType?.contains("hqi_maker") ?? false) ...[
-                      if (widget.observationData.makerSubmitted == true ||
-                          widget.observationData.state ==
-                              "in_review_by_checker") ...[
+                      if (widget.observationData.syncStatus != "pending" &&
+                          !isNewlyAddedOffline &&
+                          !isUpdatedOffline &&
+                          (widget.observationData.makerSubmitted == true ||
+                              widget.observationData.state ==
+                                  "in_review_by_checker")) ...[
                         buildActionButton("Already Submitted", () {}),
                       ] else ...[
                         buildActionButton(
                           isNewlyAddedOffline
                               ? "Submit"
-                              : (isUpdatedOffline
+                              : (isUpdatedOffline ||
+                                      widget.observationData.syncStatus ==
+                                          "pending"
                                   ? "Update & Resubmit"
                                   : "Resubmit"),
                           () async => await _handleMakerSubmission(),
@@ -1651,12 +1661,16 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
                       ],
                     ] else if (userType == "hqi_checker" ||
                         userType == "hqi_approver") ...[
-                      if (widget.observationData.state == "completed") ...[
+                      if (widget.observationData.syncStatus != "pending" &&
+                          !isNewlyAddedOffline &&
+                          !isUpdatedOffline &&
+                          widget.observationData.state == "completed") ...[
                         buildActionButton("Already Submitted", () {}),
                       ] else if (widget.observationData.checkerSubmitted !=
                               true ||
                           widget.observationData.state ==
-                              "in_review_by_checker") ...[
+                              "in_review_by_checker" ||
+                          widget.observationData.syncStatus == "pending") ...[
                         Row(
                           children: [
                             Expanded(
@@ -1669,7 +1683,10 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: buildActionButton(
-                                  (isNewlyAddedOffline || isUpdatedOffline)
+                                  (isNewlyAddedOffline ||
+                                          isUpdatedOffline ||
+                                          widget.observationData.syncStatus ==
+                                              "pending")
                                       ? "Update & Resubmit"
                                       : "Resubmit",
                                   () async => await _handleCheckerResubmit(),
