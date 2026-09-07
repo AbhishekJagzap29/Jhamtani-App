@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/Repo/project_repo.dart';
 import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 
 
 class AttachmentController extends GetxController {

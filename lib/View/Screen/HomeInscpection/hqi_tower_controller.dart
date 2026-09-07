@@ -1,6 +1,11 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/Repo/project_repo.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/get_flat_list_hqi_res_model.dart';
@@ -13,8 +18,6 @@ import 'package:jhamtani_app/View/Constant/responsive.dart';
 import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
 import 'package:jhamtani_app/View/Utils/extension.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 class HQITowerController extends GetxController {
   String towerId = Get.arguments['towerId'];
@@ -276,6 +279,9 @@ class HQITowerController extends GetxController {
       log('Total offline FLAT LIST count BEFORE update: ${allOfflineData.length}');
 
       if (response.data != null && response.data!.isNotEmpty) {
+        log('Downloading images locally for offline use...');
+        await _downloadOfflineImagesForFlat(response.data!);
+
         String newFlatId = response.data!.first.flatId.toString();
         log('New response data flat_id: $newFlatId');
 
@@ -498,5 +504,97 @@ class HQITowerController extends GetxController {
         );
       },
     );
+  }
+
+  Future<void> _downloadOfflineImagesForFlat(List<OfflineHQIData> flatDataList) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final offlineImgDir = Directory('${appDir.path}/offline_images');
+      if (!offlineImgDir.existsSync()) {
+        await offlineImgDir.create(recursive: true);
+      }
+
+      Dio dio = Dio();
+
+      for (var flat in flatDataList) {
+        if (flat.locationData != null) {
+          for (var location in flat.locationData!) {
+            if (location.observations != null) {
+              for (var observation in location.observations!) {
+                if (observation.imgData != null) {
+                  for (int i = 0; i < observation.imgData!.length; i++) {
+                    var imgDatum = observation.imgData![i];
+
+                    String? checkerImg = imgDatum.checkerUploadedImg;
+                    String? makerImg = imgDatum.makerUploadedImg;
+
+                    String updatedCheckerImg = checkerImg ?? '';
+                    String updatedMakerImg = makerImg ?? '';
+
+                    // Process checker uploaded image (Before image)
+                    if (checkerImg != null &&
+                        checkerImg.isNotEmpty &&
+                        (checkerImg.startsWith('http://') || checkerImg.startsWith('https://'))) {
+                      try {
+                        String rawFileName = checkerImg.split('/').last.split('?').first;
+                        String fileName = 'checker_${observation.observationId ?? 0}_${i}_$rawFileName';
+                        fileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9_\.]'), '_');
+                        String localPath = '${offlineImgDir.path}/$fileName';
+
+                        File localFile = File(localPath);
+                        if (!localFile.existsSync()) {
+                          await dio.download(checkerImg, localPath);
+                        }
+
+                        if (localFile.existsSync()) {
+                          updatedCheckerImg = localPath;
+                          log('✅ Downloaded offline before image: $localPath');
+                        }
+                      } catch (err) {
+                        log('⚠️ Failed downloading before image: $err');
+                      }
+                    }
+
+                    // Process maker uploaded image (After image)
+                    if (makerImg != null &&
+                        makerImg.isNotEmpty &&
+                        (makerImg.startsWith('http://') || makerImg.startsWith('https://'))) {
+                      try {
+                        String rawFileName = makerImg.split('/').last.split('?').first;
+                        String fileName = 'maker_${observation.observationId ?? 0}_${i}_$rawFileName';
+                        fileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9_\.]'), '_');
+                        String localPath = '${offlineImgDir.path}/$fileName';
+
+                        File localFile = File(localPath);
+                        if (!localFile.existsSync()) {
+                          await dio.download(makerImg, localPath);
+                        }
+
+                        if (localFile.existsSync()) {
+                          updatedMakerImg = localPath;
+                          log('✅ Downloaded offline after image: $localPath');
+                        }
+                      } catch (err) {
+                        log('⚠️ Failed downloading after image: $err');
+                      }
+                    }
+
+                    observation.imgData![i] = ObservationImageData(
+                      imgUrl: imgDatum.imgUrl,
+                      userChecker: imgDatum.userChecker,
+                      userMaker: imgDatum.userMaker,
+                      checkerUploadedImg: updatedCheckerImg,
+                      makerUploadedImg: updatedMakerImg,
+                    );
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      log('❌ Error downloading offline images: $e');
+    }
   }
 }

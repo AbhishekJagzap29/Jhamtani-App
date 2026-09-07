@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-
+import 'package:get/get.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/Repo/project_repo.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/fetch_observation_form_res_model.dart';
@@ -12,7 +12,6 @@ import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/offline_hqi_flate_
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/submit_observation_res_model.dart';
 import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
-import 'package:get/get.dart';
 
 class AddObservationController extends GetxController {
   List<IssueTypeData> issueTypeList = [];
@@ -24,7 +23,6 @@ class AddObservationController extends GetxController {
   ApiResponse _issueCategoryResponse =
       ApiResponse.initial(message: 'Initialization');
   ApiResponse get issueCategoryResponse => _issueCategoryResponse;
-
 
   /// Local storage key
   final String storageKey = SharedPreference.issueCategoriesWithTypes;
@@ -78,7 +76,11 @@ class AddObservationController extends GetxController {
 
     update();
   }
+  ApiResponse _issueTypeResponse =
+      ApiResponse.initial(message: 'Initialization');
+  ApiResponse get issueTypeResponse => _issueTypeResponse;
 
+  
   /// Get Issue Types for selected category
   Future<void> getIssueTypes(
       {required int categoryId, required String categoryName}) async {
@@ -139,84 +141,76 @@ class AddObservationController extends GetxController {
     update();
   }
 
-  ApiResponse _issueTypeResponse =
-      ApiResponse.initial(message: 'Initialization');
-  ApiResponse get issueTypeResponse => _issueTypeResponse;
+ApiResponse _impactTypeResponse =
+    ApiResponse.initial(message: 'Initialization');
 
-  ApiResponse _observationCategoryResponse =
-      ApiResponse.initial(message: 'Initialization');
+ApiResponse get impactTypeResponse => _impactTypeResponse;
 
+final String impactTypeStorageKey = SharedPreference.impactTypes;
+Future<void> getImpactTypes() async {
+  _impactTypeResponse = ApiResponse.loading(
+    message: 'Loading impact types...',
+  );
 
+  update();
 
-  ApiResponse _impactTypeResponse =
-      ApiResponse.initial(message: 'Initialization');
+  try {
+    // Step 1: Get Impact Types from local storage
+    String? localData = preferences.getString(impactTypeStorageKey);
 
-  ApiResponse get impactTypeResponse => _impactTypeResponse;
+    if (localData != null && localData.isNotEmpty) {
+      List<dynamic> decoded = jsonDecode(localData);
 
-  final String impactTypeStorageKey = SharedPreference.impactTypes;
+      impactTypeList = decoded
+          .map((e) => ImpactTypeData.fromJson(e))
+          .toList();
 
-  Future getImpactTypes() async {
-    _impactTypeResponse = ApiResponse.loading(
-      message: 'Loading impact types...',
-    );
+      _impactTypeResponse =
+          ApiResponse.complete(impactTypeList);
 
-    update();
+      update();
+      return;
+    }
 
-    try {
-      // Step 1: Check local storage
-      String? localData = preferences.getString(impactTypeStorageKey);
+    // Step 2: If local data doesn't exist, call API
+    final response = await ProjectRepo().impactTypeRepo();
 
-      if (localData != null && localData.isNotEmpty) {
-        List<dynamic> decoded = jsonDecode(localData);
+    if (response.data != null && response.data!.isNotEmpty) {
+      impactTypeList = response.data!;
 
-        impactTypeList =
-            decoded.map((e) => ImpactTypeData.fromJson(e)).toList();
+      _impactTypeResponse =
+          ApiResponse.complete(impactTypeList);
 
-        _impactTypeResponse = ApiResponse.complete(
-          impactTypeList,
-        );
-
-        update();
-        return;
-      }
-
-      // Step 2: Call Impact Type API
-      final response = await ProjectRepo().impactTypeRepo();
-
-      if (response.data != null && response.data!.isNotEmpty) {
-        impactTypeList = response.data!;
-
-        _impactTypeResponse = ApiResponse.complete(
-          impactTypeList,
-        );
-
-        // Step 3: Save data locally
-        preferences.putString(
-          impactTypeStorageKey,
-          jsonEncode(
-            response.data!.map((e) => e.toJson()).toList(),
-          ),
-        );
-      } else {
-        impactTypeList = [];
-
-        _impactTypeResponse = ApiResponse.error(
-          message: 'No impact types found',
-        );
-      }
-    } catch (e, st) {
-      print("Error fetching impact types: $e");
-      print("Stacktrace: $st");
-
+      // Step 3: Save API response locally
+      await preferences.putString(
+        impactTypeStorageKey,
+        jsonEncode(
+          response.data!.map((e) => e.toJson()).toList(),
+        ),
+      );
+    } else {
       impactTypeList = [];
 
       _impactTypeResponse = ApiResponse.error(
-        message: e.toString(),
+        message: 'No impact types found',
       );
     }
+  } catch (e, st) {
+    log("Error fetching impact types: $e");
+    log("Stacktrace: $st");
 
-    update();
+    impactTypeList = [];
+
+    _impactTypeResponse = ApiResponse.error(
+      message: e.toString(),
+    );
   }
+
+  update();
+}
+
+
+
 
   ApiResponse _submitObservationResponse =
       ApiResponse.initial(message: 'Initialization');
@@ -305,8 +299,8 @@ class AddObservationController extends GetxController {
         "state": state,
         "target_date": targetDate,
         "remark": remark,
-     //   "observation_category": observationCategory,
-   "checker_uploaded_img": (preferences
+        //   "observation_category": observationCategory,
+        "checker_uploaded_img": (preferences
                     .getString(SharedPreference.userType)
                     ?.contains("hqi_maker") ??
                 false)
@@ -461,7 +455,7 @@ class AddObservationController extends GetxController {
                     visitDetails: obs.visitDetails,
                     checkerSubmitted: obs.checkerSubmitted,
                     makerSubmitted: obs.makerSubmitted,
-                //    observationCategory: obs.observationCategory ?? "",
+                    //    observationCategory: obs.observationCategory ?? "",
                     impactType: obs.impactType ?? "",
                   ));
                 } catch (e) {
@@ -503,7 +497,7 @@ class AddObservationController extends GetxController {
     required String userId,
     required List<File> imageFiles,
     String? observationCategory,
-    String?impactType,
+    String? impactType,
   }) async {
     _submitObservationResponse = ApiResponse.loading(message: 'Submitting...');
     update();
@@ -529,7 +523,7 @@ class AddObservationController extends GetxController {
         "impact": impact,
         "user_id":
             int.parse(preferences.getString(SharedPreference.userId) ?? "0"),
-      //  "observation_category": observationCategory,
+        //  "observation_category": observationCategory,
         "impact_type": impactType,
         "checker_uploaded_img": (preferences
                     .getString(SharedPreference.userType)

@@ -1,20 +1,24 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:intl/intl.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/offline_hqi_flate_res_model.dart';
 import 'package:jhamtani_app/View/Constant/app_color.dart';
 import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
+import 'package:jhamtani_app/View/Controller/network_controller.dart';
 import 'package:jhamtani_app/View/Screen/ActivityScreen/EditActivity/image_capture_screen.dart';
 import 'package:jhamtani_app/View/Screen/HomeInscpection/add_observation_controller.dart';
 import 'package:jhamtani_app/View/Screen/HomeInscpection/attachment_controller.dart';
 import 'package:jhamtani_app/View/Screen/HomeInscpection/flat_sub_location_controller.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
+
 
 class AttachmentDialogPopup extends StatefulWidget {
   final OfflineObservationData observationData;
@@ -140,10 +144,11 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
   }
 
   bool get isOfflineMode =>
-      (widget.isOffline == true) ||
-      isFlatExistOffline ||
-      isNewlyAddedOffline ||
-      isUpdatedOffline;
+      (widget.isOffline == true) ;
+      // ||
+      // isFlatExistOffline ||
+      // isNewlyAddedOffline ||
+      // isUpdatedOffline;
 
   // 🔹 NEW: Update observation in localStorage
   Future<void> _updateObservationInLocalStorage() async {
@@ -226,7 +231,9 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
     }
   }
 
-  List<ObservationImageData> _createUpdatedImageData() {
+
+
+    List<ObservationImageData> _createUpdatedImageData() {
     List<ObservationImageData> imgDataList = [];
     Set<String> addedImages = {}; // Track added imgUrl to avoid duplicates
 
@@ -273,6 +280,54 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
     log("🔹 Total unique images added: ${imgDataList.length}");
     return imgDataList;
   }
+
+  // List<ObservationImageData> _createUpdatedImageData() {
+  //   List<ObservationImageData> imgDataList = [];
+  //   Set<String> addedImages = {}; // Track added imgUrl to avoid duplicates
+
+  //   log("🔹 Creating updated image data...");
+
+  //   // Add before images (checker images)
+  //   for (String imagePath in beforeImageList) {
+  //     imagePath = imagePath.trim();
+  //     if (imagePath.isEmpty || addedImages.contains(imagePath)) continue;
+
+  //     log(imagePath.startsWith("http")
+  //         ? "🌐 Adding remote before image: $imagePath"
+  //         : "✅ Adding local before image: $imagePath");
+
+  //     imgDataList.add(ObservationImageData(
+  //       imgUrl: imagePath,
+  //       userChecker: true,
+  //       userMaker: 0,
+  //       checkerUploadedImg: imagePath,
+  //       makerUploadedImg: null,
+  //     ));
+  //     addedImages.add(imagePath);
+  //   }
+
+  //   // Add after images (maker images)
+  //   for (String imagePath in afterImageList) {
+  //     imagePath = imagePath.trim();
+  //     if (imagePath.isEmpty || addedImages.contains(imagePath)) continue;
+
+  //     log(imagePath.startsWith("http")
+  //         ? "🌐 Adding remote after image: $imagePath"
+  //         : "✅ Adding local after image: $imagePath");
+
+  //     imgDataList.add(ObservationImageData(
+  //       imgUrl: imagePath,
+  //       userChecker: false,
+  //       userMaker: 1,
+  //       checkerUploadedImg: null,
+  //       makerUploadedImg: imagePath,
+  //     ));
+  //     addedImages.add(imagePath);
+  //   }
+
+  //   log("🔹 Total unique images added: ${imgDataList.length}");
+  //   return imgDataList;
+  // }
 
   // 🔹 Save observation changes locally to offline storage
   Future<bool> _saveObservationOffline({
@@ -497,8 +552,12 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
       List<String> afterImagesToSubmit = [];
       for (String imagePath in afterImageList) {
         imagePath = imagePath.trim();
-        if (imagePath.isEmpty || imagePath.contains('http://')) continue;
-
+    if (imagePath.isEmpty || imagePath.contains('http://')) continue;
+///////////////////////////////////////////////////////////////////// if (imagePath.isEmpty ||
+//     imagePath.startsWith('http://') ||
+//     imagePath.startsWith('https://')) {
+//   continue;
+// }
         final file = File(imagePath);
         if (file.existsSync()) {
           afterImagesToSubmit.add(imagePath);
@@ -1032,7 +1091,6 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
         }
       }
     } catch (e) {
-      log("Error during checker resubmit: $e");
       if (e.toString().contains("No Internet") ||
           e.toString().contains("SocketException")) {
         await _saveObservationOffline(isCheckerResubmitting: true);
@@ -1050,41 +1108,45 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
   }
 
   addObservationData() {
-    if (widget.observationData.remark != null &&
-        widget.observationData.date != null &&
-        widget.observationData.targetDate != null) {
-      final formattedDate = DateFormat('yyyy-MM-dd').format(
-          widget.observationData.date != null
-              ? widget.observationData.date!
-              : DateTime.now());
-      final formattedTargetDate = DateFormat('yyyy-MM-dd').format(
-          widget.observationData.targetDate != null
-              ? widget.observationData.targetDate!
-              : DateTime.now());
+    remarkController.text = widget.observationData.remark ?? '';
+    descriptionController.text = widget.observationData.description ?? '';
 
-      remarkController.text = widget.observationData.remark ?? '';
-      descriptionController.text = widget.observationData.description ?? '';
-      dateController.text = formattedDate;
-      // dateController.text = inputFormat.parse(widget.observationData.date.toString()).toString();
-      targetDateController.text = formattedTargetDate;
-      // targetDateController.text = inputFormat.parse(widget.observationData.targetDate.toString()).toString();
-      log('dateController.text::::::::::::::::${dateController.text}');
-      print(
-          'widget.observationData.imgData::::::::::::::::${jsonEncode(widget.observationData.imgData)}');
-      beforeImageList = widget.observationData.imgData
-              ?.map((e) => e.checkerUploadedImg)
-              .whereType<String>()
-              .toList() ??
-          [];
-      afterImageList = widget.observationData.imgData
-              ?.map((e) => e.makerUploadedImg)
-              .whereType<String>()
-              .toList() ??
-          [];
-      setState(() {});
-      log('beforeImageList::::::::::::::::${beforeImageList}');
-      log('afterImageList::::::::::::::::${afterImageList}');
-    } else {
+    final formattedDate = DateFormat('yyyy-MM-dd').format(
+        widget.observationData.date ?? DateTime.now());
+    final formattedTargetDate = DateFormat('yyyy-MM-dd').format(
+        widget.observationData.targetDate ?? DateTime.now());
+
+    dateController.text = formattedDate;
+    targetDateController.text = formattedTargetDate;
+
+    log('dateController.text::::::::::::::::${dateController.text}');
+    print(
+        'widget.observationData.imgData::::::::::::::::${jsonEncode(widget.observationData.imgData)}');
+
+    beforeImageList = widget.observationData.imgData
+            ?.map((e) => e.checkerUploadedImg)
+            .whereType<String>()
+            .where((img) => img.trim().isNotEmpty)
+            .toList() ??
+        [];
+    afterImageList = widget.observationData.imgData
+            ?.map((e) => e.makerUploadedImg)
+            .whereType<String>()
+            .where((img) => img.trim().isNotEmpty)
+            .toList() ??
+        [];
+
+    setState(() {});
+
+    log('beforeImageList::::::::::::::::${beforeImageList}');
+    log('afterImageList::::::::::::::::${afterImageList}');
+
+    // Only call online fetchObservationData if not offline and data incomplete
+    if ((widget.observationData.remark == null ||
+            widget.observationData.date == null ||
+            widget.observationData.targetDate == null) &&
+        !_checkFlatExistInOffline() &&
+        NetworkController().isResult == false) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         fetchObservationData();
       });
@@ -1126,6 +1188,9 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
                   .toList() ??
               [];
           setState(() {});
+
+
+
         }
       },
     );
@@ -1709,31 +1774,70 @@ class _AttachmentDialogPopupState extends State<AttachmentDialogPopup> {
     });
   }
 
+  // //Add this helper function in the same file or your widget class
+  // ImageProvider getImageProvider(String url) {
+  //   if (url.startsWith('http://') || url.startsWith('https://')) {
+  //     // Network image
+  //     return NetworkImage(url);
+  //   } else if (url.startsWith('/')) {
+  //     // Local file
+  //     final file = File(url);
+  //     if (file.existsSync()) {
+  //       return FileImage(file);
+  //     } else {
+  //       // fallback placeholder
+  //       return const AssetImage('assets/images/placeholder.png');
+  //     }
+  //   } else {
+  //     // Assume base64
+  //     try {
+  //       final decodedBytes = base64Decode(url);
+  //       return MemoryImage(decodedBytes);
+  //     } catch (e) {
+  //       // fallback placeholder if base64 invalid
+  //       return const AssetImage('assets/images/placeholder.png');
+  //     }
+  //   }
+  // }
+
+
+
+
+
+
+
+
+
+
+
   // Add this helper function in the same file or your widget class
   ImageProvider getImageProvider(String url) {
+    if (url.trim().isEmpty) {
+      return const AssetImage('assets/images/placeholder.png');
+    }
+
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      // Network image
-      return NetworkImage(url);
-    } else if (url.startsWith('/')) {
-      // Local file
-      final file = File(url);
-      if (file.existsSync()) {
-        return FileImage(file);
-      } else {
-        // fallback placeholder
-        return const AssetImage('assets/images/placeholder.png');
-      }
-    } else {
-      // Assume base64
-      try {
-        final decodedBytes = base64Decode(url);
-        return MemoryImage(decodedBytes);
-      } catch (e) {
-        // fallback placeholder if base64 invalid
-        return const AssetImage('assets/images/placeholder.png');
-      }
+      // Network image with disk cache support
+      return CachedNetworkImageProvider(url);
+    }
+
+    // Clean file:// prefix if present
+    String cleanPath = url.startsWith('file://') ? url.replaceFirst('file://', '') : url;
+    final file = File(cleanPath);
+    if (file.existsSync()) {
+      return FileImage(file);
+    }
+
+    // Fallback: Assume base64
+    try {
+      final cleanBase64 = url.contains(',') ? url.split(',').last : url;
+      final decodedBytes = base64Decode(cleanBase64.replaceAll(RegExp(r'\s'), ''));
+      return MemoryImage(decodedBytes);
+    } catch (e) {
+      return const AssetImage('assets/images/placeholder.png');
     }
   }
+
 
   Widget buildLabel(String label) => Padding(
         padding: const EdgeInsets.only(bottom: 6, top: 12),

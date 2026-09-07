@@ -3,28 +3,28 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
-
+import 'package:jhamtani_app/View/Constant/app_string.dart';
+import 'package:jhamtani_app/View/Screen/ActivityScreen/EditActivity/image_capture_screen.dart';
+import 'package:jhamtani_app/View/Screen/HomeInscpection/add_observation_controller.dart';
+import 'package:jhamtani_app/View/Utils/app_routes.dart';
+import 'package:jhamtani_app/View/Utils/extension.dart';
+import 'package:jhamtani_app/View/Widgets/app_bar.dart';
+import 'package:jhamtani_app/View/Widgets/back_to_home_button.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/impact_type_res_model.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/issue_category_res_model.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/issue_type_res_model.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/offline_hqi_flate_res_model.dart';
-import 'package:jhamtani_app/View/Constant/app_string.dart';
 import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
-import 'package:jhamtani_app/View/Screen/ActivityScreen/EditActivity/image_capture_screen.dart';
-import 'package:jhamtani_app/View/Screen/HomeInscpection/add_observation_controller.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
-import 'package:jhamtani_app/View/Utils/app_routes.dart';
-import 'package:jhamtani_app/View/Utils/extension.dart';
-import 'package:jhamtani_app/View/Widgets/app_bar.dart';
-import 'package:jhamtani_app/View/Widgets/back_to_home_button.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
+
 
 class AddObservationScreen extends StatefulWidget {
   const AddObservationScreen({Key? key}) : super(key: key);

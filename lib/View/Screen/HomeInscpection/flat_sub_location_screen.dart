@@ -1,5 +1,9 @@
 import 'dart:convert';
 import 'dart:developer';
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/offline_hqi_flate_res_model.dart';
 import 'package:jhamtani_app/View/Constant/app_color.dart';
@@ -13,9 +17,6 @@ import 'package:jhamtani_app/View/Utils/extension.dart';
 import 'package:jhamtani_app/View/Widgets/app_bar.dart';
 import 'package:jhamtani_app/View/Widgets/back_to_home_button.dart';
 import 'package:jhamtani_app/View/Widgets/search_filter_row.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 class FlatSubLocationScreen extends StatefulWidget {
   const FlatSubLocationScreen({super.key});
@@ -222,7 +223,7 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                     ),
                                   ],
                                 ),
-                                (h * 0.01).addHSpace(),
+                                 (h * 0.01).addHSpace(),
                                 // Column(
                                 //   children: [
                                 //     Divider(
@@ -353,25 +354,25 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                           // =========================
                                           // SELECT / CANCEL BUTTON (MATCH UI)
                                           // =========================
-                                          // ElevatedButton(
-                                          //   style: ElevatedButton.styleFrom(
-                                          //     backgroundColor: containerColor,
-                                          //     foregroundColor: Colors.black,
-                                          //     shape: RoundedRectangleBorder(
-                                          //       borderRadius:
-                                          //           BorderRadius.circular(30),
-                                          //     ),
-                                          //     padding:
-                                          //         const EdgeInsets.symmetric(
-                                          //             horizontal: 18,
-                                          //             vertical: 10),
-                                          //   ),
-                                          //   onPressed:
-                                          //       controller.toggleSelectionMode,
-                                          //   child: Text(isSelection
-                                          //       ? "Cancel"
-                                          //       : "Select"),
-                                          // ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: containerColor,
+                                              foregroundColor: Colors.black,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(30),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 18,
+                                                      vertical: 10),
+                                            ),
+                                            onPressed:
+                                                controller.toggleSelectionMode,
+                                            child: Text(isSelection
+                                                ? "Cancel"
+                                                : "Select"),
+                                          ),
 
                                           const SizedBox(width: 10),
 
@@ -538,13 +539,12 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                                 observationCategory:
                                                     obs.observationCategory ??
                                                         '',
-                                                isOffline: isOffline || isFlatExistOffline,
                                               ),
                                             ).then(
                                               (value) {
                                                 log('isFlatExistOffline:::::::value:::::::::${isFlatExistOffline} : ${value}');
-                                                // if (isFlatExistOffline) {
-                                                if (isFlatExistOffline || isOffline || value == true) {
+                                               // if (isFlatExistOffline) {
+                                               if (isFlatExistOffline || isOffline || value == true) {
                                                   _refreshData();
                                                 }
                                               },

@@ -15,11 +15,11 @@ import 'package:jhamtani_app/View/Controller/network_controller.dart';
 import 'package:jhamtani_app/View/Screen/BottomBarScreen/HomeScreen/home_screen_controller.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
 import 'package:jhamtani_app/View/Utils/app_routes.dart';
-import 'package:jhamtani_app/View/Widgets/app_bar.dart';
 import 'package:jhamtani_app/View/Widgets/search_filter_row.dart';
 import 'package:jhamtani_app/View/utils/extension.dart';
-
 import '../../../Constant/shared_prefs.dart';
+
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -60,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (networkController.isResult == false) {
         await projectScreenController.getData();
         projectScreenController.fetchAndStoreIssueData();
+        projectScreenController.fetchAndStoreImpactTypes();
       }
     });
   }
@@ -439,254 +440,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
 
-// import 'dart:developer';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
-// import 'package:get/get.dart';
-// import 'package:step_progress_indicator/step_progress_indicator.dart';
 
-// import 'package:jhamtani_app/Api/Apis/api_response.dart';
-// import 'package:jhamtani_app/View/Constant/app_color.dart';
-// import 'package:jhamtani_app/View/Constant/app_string.dart';
-// import 'package:jhamtani_app/View/Constant/no_internet.dart';
-// import 'package:jhamtani_app/View/Controller/network_controller.dart';
-// import 'package:jhamtani_app/View/Screen/BottomBarScreen/HomeScreen/home_screen_controller.dart';
-// import 'package:jhamtani_app/View/Utils/app_routes.dart';
-// import 'package:jhamtani_app/View/utils/extension.dart';
 
-// import '../../../Constant/shared_prefs.dart';
 
-// class HomeScreen extends StatefulWidget {
-//   const HomeScreen({super.key});
 
-//   @override
-//   State<HomeScreen> createState() => _HomeScreenState();
-// }
 
-// class _HomeScreenState extends State<HomeScreen> {
-//   HomeScreenController controller = Get.put(HomeScreenController());
-//   NetworkController net = Get.put(NetworkController());
 
-//   @override
-//   void initState() {
-//     getData();
-//     log("session => ${preferences.getString(SharedPreference.sessionId)}");
-//     super.initState();
-//   }
 
-//   getData() async {
-//     controller.changeSyncStatus();
-//     net.checkConnectivity().then((value) async {
-//       if (net.isResult == false) {
-//         await controller.getData();
-//         controller.fetchAndStoreIssueData();
-//       }
-//     });
-//   }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     final h = MediaQuery.of(context).size.height;
-//     final w = MediaQuery.of(context).size.width;
 
-//     return GetBuilder<NetworkController>(builder: (netController) {
-//       return GetBuilder<HomeScreenController>(builder: (c) {
-//         return Scaffold(
-//           backgroundColor: const Color(0xffF4F6FA),
 
-//           /// ================= APP BAR (ONLY TITLE) =================
-//           appBar: AppBar(
-// backgroundColor: const Color(0xFF0052CC),
-//             elevation: 1,
-//             centerTitle: true,
-//             title: AppString.projects.boldRobotoTextStyle(fontSize: 20 ,  fontColor: Colors.white,),
-//           ),
 
-//           body: KeyboardVisibilityBuilder(
-//             builder: (context, isKeyboardVisible) {
-//               if (netController.isResult == true ||
-//                   c.getAssignedProjectResponse.status == Status.ERROR) {
-//                 return NoInternetWidget(
-//                   h: h,
-//                   w: w,
-//                   onPressed: getData,
-//                 );
-//               }
 
-//               return Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
-//                 children: [
-//                   SizedBox(height: h * 0.02),
-
-//                   /// ================= GREETING SECTION (OUTSIDE APPBAR) =================
-//                   Padding(
-//                     padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-//                     child: Column(
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: const [
-//                         Text(
-//                           "Good Morning, Team 👋",
-//                           style: TextStyle(
-//                             color: Colors.black,
-//                             fontSize: 18,
-//                             fontWeight: FontWeight.bold,
-//                           ),
-//                         ),
-//                         SizedBox(height: 4),
-//                         Text(
-//                           "Track quality. Build excellence.",
-//                           style: TextStyle(
-//                             color: Colors.grey,
-//                             fontSize: 12,
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-
-//                   SizedBox(height: h * 0.02),
-
-//                   /// ================= PROJECT LIST =================
-//                   Expanded(
-//                     child: c.getAssignedProjectResponse.status ==
-//                             Status.LOADING
-//                         ? const Center(child: CircularProgressIndicator())
-//                         : ListView.builder(
-//                             padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-//                             itemCount: c.searchDataList.length,
-//                             itemBuilder: (context, index) {
-//                               final item = c.searchDataList[index];
-
-//                               double per =
-//                                   double.tryParse(item.progress ?? "0") ?? 0;
-
-//                               return GestureDetector(
-//                                 onTap: () {
-//                                   Get.toNamed(
-//                                     Routes.projectChecklistScreen,
-//                                     arguments: {
-//                                       "id": item.projectId.toString(),
-//                                       "name": item.name.toString(),
-//                                       "buId": item.buId,
-//                                     },
-//                                   );
-//                                 },
-
-//                                 /// ================= PROJECT CARD =================
-//                                 child: Container(
-//                                   margin: const EdgeInsets.only(bottom: 12),
-//                                   padding: const EdgeInsets.all(12),
-//                                   decoration: BoxDecoration(
-//                                     color: Colors.white,
-//                                     borderRadius: BorderRadius.circular(14),
-//                                     boxShadow: [
-//                                       BoxShadow(
-//                                         color: Colors.black.withOpacity(0.05),
-//                                         blurRadius: 8,
-//                                         offset: const Offset(0, 3),
-//                                       )
-//                                     ],
-//                                   ),
-//                                   child: Row(
-//                                     children: [
-//                                       /// IMAGE
-//                                       ClipRRect(
-//                                         borderRadius: BorderRadius.circular(10),
-//                                         child: Image.network(
-//                                           item.image.toString(),
-//                                           height: 85,
-//                                           width: 85,
-//                                           fit: BoxFit.cover,
-//                                         ),
-//                                       ),
-
-//                                       SizedBox(width: w * 0.03),
-
-//                                       /// DETAILS
-//                                       Expanded(
-//                                         child: Column(
-//                                           crossAxisAlignment:
-//                                               CrossAxisAlignment.start,
-//                                           children: [
-//                                             Text(
-//                                               item.name.toString(),
-//                                               maxLines: 1,
-//                                               overflow: TextOverflow.ellipsis,
-//                                               style: const TextStyle(
-//                                                 fontSize: 15,
-//                                                 fontWeight: FontWeight.w600,
-//                                               ),
-//                                             ),
-
-//                                             const SizedBox(height: 5),
-
-//                                             const Text(
-//                                               "Mumbai, Maharashtra",
-//                                               style: TextStyle(
-//                                                 fontSize: 12,
-//                                                 color: Colors.grey,
-//                                               ),
-//                                             ),
-
-//                                             const SizedBox(height: 8),
-
-//                                             Row(
-//                                               children: [
-//                                                 const Text(
-//                                                   "Overall Quality",
-//                                                   style: TextStyle(
-//                                                     fontSize: 12,
-//                                                     color: Colors.grey,
-//                                                   ),
-//                                                 ),
-//                                                 const SizedBox(width: 6),
-//                                                 Text(
-//                                                   "${per.toStringAsFixed(0)}%",
-//                                                   style: const TextStyle(
-//                                                     fontSize: 12,
-//                                                     fontWeight:
-//                                                         FontWeight.bold,
-//                                                   ),
-//                                                 ),
-//                                               ],
-//                                             ),
-
-//                                             const SizedBox(height: 6),
-
-//                                             StepProgressIndicator(
-//                                               totalSteps: 5,
-//                                               currentStep: per < 20
-//                                                   ? 1
-//                                                   : per < 40
-//                                                       ? 2
-//                                                       : per < 60
-//                                                           ? 3
-//                                                           : per < 80
-//                                                               ? 4
-//                                                               : 5,
-//                                               size: 6,
-//                                               roundedEdges:
-//                                                   const Radius.circular(10),
-//                                               selectedColor: Colors.green,
-//                                               unselectedColor:
-//                                                   Colors.grey.shade200,
-//                                             ),
-//                                           ],
-//                                         ),
-//                                       ),
-//                                     ],
-//                                   ),
-//                                 ),
-//                               );
-//                             },
-//                           ),
-//                   ),
-//                 ],
-//               );
-//             },
-//           ),
-//         );
-//       });
-//     });
-//   }
-// }

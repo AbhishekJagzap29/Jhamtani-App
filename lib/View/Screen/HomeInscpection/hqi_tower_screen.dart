@@ -1,3 +1,6 @@
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/get_flat_list_hqi_res_model.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/get_tower_res_model.dart';
@@ -14,8 +17,6 @@ import 'package:jhamtani_app/View/Utils/extension.dart';
 import 'package:jhamtani_app/View/Widgets/app_bar.dart';
 import 'package:jhamtani_app/View/Widgets/back_to_home_button.dart';
 import 'package:jhamtani_app/View/Widgets/search_filter_row.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:step_progress_indicator/step_progress_indicator.dart';
 
 class HQITowerDetailsScreen extends StatefulWidget {
@@ -64,7 +65,7 @@ class _HQITowerDetailsScreenState extends State<HQITowerDetailsScreen> {
         backgroundColor: backGroundColor,
         appBar: AppBarWidget(
           backGroundColor: const Color(0xFF3498DB),
-          title: AppString.towerDetails.boldRobotoTextStyle(fontSize: 20, fontColor: Colors.white),
+          title: AppString.towerDetails.boldRobotoTextStyle(fontSize: 0, fontColor: Colors.white),
         ),
         body: SafeArea(
           child: GetBuilder<HQITowerController>(
@@ -147,7 +148,7 @@ class _HQITowerDetailsScreenState extends State<HQITowerDetailsScreen> {
                                     ),
                                   ],
                                 ),
-                                // Divider(color: const Color(0xffE6E6E6), thickness: 2, height: h * 0.02),
+                              //  Divider(color: const Color(0xffE6E6E6), thickness: 2, height: h * 0.02),
                                 // Row(
                                 //   children: [
                                 //     'Total Points                    : '.boldRobotoTextStyle(fontSize: 12),

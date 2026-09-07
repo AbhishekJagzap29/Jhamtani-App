@@ -1,247 +1,4 @@
-// import 'dart:convert';
-// import 'dart:developer';
 
-// import 'package:flutter/material.dart';
-// import 'package:get/get.dart';
-// import 'package:jhamtani_app/Api/Apis/api_response.dart';
-// import 'package:jhamtani_app/Api/Repo/project_repo.dart';
-// import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/issue_category_res_model.dart';
-// import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/issue_type_res_model.dart';
-// import 'package:jhamtani_app/Api/ResponseModel/project_screen_res_model.dart';
-// import 'package:jhamtani_app/Api/ResponseModel/success_data_res_model.dart';
-// import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
-// import 'package:jhamtani_app/View/Controller/network_controller.dart';
-// import 'package:jhamtani_app/View/Utils/app_layout.dart';
-
-// class HomeScreenController extends GetxController {
-//   final searchController = TextEditingController();
-//   List<ProjectDetails> projectData = [];
-//   List<ProjectDetails> searchDataList = [];
-//   bool sync = false;
-//   bool loading = false;
-
-//   NetworkController networkController = Get.put(NetworkController());
-
-//   updateSync(value) {
-//     sync = value;
-//     update();
-//   }
-
-//   getData() async {
-//     await getAssignedProjectController();
-//   }
-
-//   searchData() {
-//     if (searchController.text.isNotEmpty) {
-//       searchDataList = [];
-//       for (var element in projectData) {
-//         if (element.name
-//             .toString()
-//             .toLowerCase()
-//             .contains(searchController.text.toString().toLowerCase())) {
-//           searchDataList.add(element);
-//         }
-//       }
-//     } else {
-//       searchDataList = projectData;
-//     }
-//     update();
-//   }
-
-//   /// API
-
-//   ApiResponse _getAssignedProjectResponse =
-//       ApiResponse.initial(message: 'Initialization');
-
-//   ApiResponse get getAssignedProjectResponse => _getAssignedProjectResponse;
-
-//   Future<dynamic> getAssignedProjectController() async {
-//     if (projectData.isNotEmpty && searchDataList.isNotEmpty) {
-//       return;
-//     }
-//     _getAssignedProjectResponse = ApiResponse.loading(message: 'Loading');
-
-//     update();
-//     projectData = [];
-//     searchDataList = [];
-//     try {
-//       AssignedProjectResponseModel response =
-//           await ProjectRepo().getAssignedProjectRepo();
-//       projectData = response.projectData!;
-//       searchDataList = projectData;
-
-//       _getAssignedProjectResponse = ApiResponse.complete(response);
-//     } catch (e) {
-//       _getAssignedProjectResponse = ApiResponse.error(message: e.toString());
-//       log("ProjectScreenController=ERROR=>$e");
-//     }
-//     update();
-//   }
-
-//   changeSyncStatus() {
-//     sync = false;
-//     String rowData =
-//         preferences.getString(SharedPreference.savedActivityData) ?? "";
-//     print('rowData::::::::::::::::$rowData');
-//     if (rowData.isNotEmpty) {
-//       sync = true;
-//     }
-//     update();
-//   }
-
-//   bool syncing = false;
-
-//   syncData() async {
-//     syncing = true;
-//     update();
-//     String rowData =
-//         preferences.getString(SharedPreference.savedActivityData) ?? "";
-//     if (rowData.isNotEmpty) {
-//       List data = jsonDecode(rowData);
-//       for (var i = 0; i < data.length; i++) {
-//         Map<String, dynamic> body = {
-//           "user_id": data[i]["user_id"],
-//           "is_draft": data[i]["is_draft"],
-//           "activity_type_id": data[i]["activity_type_id"],
-//           "checklist_line": data[i]["checklist_line"],
-//           "overall_remarks": data[i]["overall_remarks"],
-//           "overall_images": data[i]["overall_images"],
-//         };
-//         await uploadData(body: body);
-//         if (i + 1 == data.length) {
-//           preferences.removePreference(SharedPreference.savedActivityData);
-//           preferences.removePreference(SharedPreference.activityData);
-//           successSnackBar("Synced", "Data synced successfully");
-//         }
-//       }
-//     }
-//     sync = false;
-//     syncing = false;
-//     update();
-//   }
-
-//   ApiResponse _uploadDataApiResponse =
-//       ApiResponse.initial(message: 'Initialization');
-
-//   ApiResponse get uploadDataApiResponse => _uploadDataApiResponse;
-
-//   uploadData({required Map<String, dynamic> body}) async {
-//     _uploadDataApiResponse = ApiResponse.loading(message: 'Loading');
-//     update();
-//     try {
-//       SuccessDataResponseModel response =
-//           await ProjectRepo().updateChecklistRepo(body: body);
-//       _uploadDataApiResponse = ApiResponse.complete(response);
-
-//       log("_makerUploadDataApiResponse==>$response");
-//     } catch (e) {
-//       _uploadDataApiResponse = ApiResponse.error(message: e.toString());
-//       log("_makerUploadDataApiResponse=ERROR=>$e");
-//     }
-//   }
-
-//   /// get Issue Category and types
-
-//   ApiResponse _issueDataResponse =
-//       ApiResponse.initial(message: 'Initialization');
-//   ApiResponse get issueDataResponse => _issueDataResponse;
-
-//   List<IssueCategoryData> issueCategoryList = [];
-//   List<IssueTypeData> issueTypeList = [];
-
-//   /// Combined data structure: each category with its issue types
-//   List<Map<String, dynamic>> categoryWithTypes = [];
-
-//   Future<void> fetchAndStoreIssueData() async {
-//     _issueDataResponse = ApiResponse.loading(message: 'Loading...');
-//     update();
-
-//     try {
-//       // 🔹 Step 0: Load local storage if exists
-//       String? localData =
-//           preferences.getString(SharedPreference.issueCategoriesWithTypes);
-//       if (localData != null && localData.isNotEmpty) {
-//         List<dynamic> decoded = jsonDecode(localData);
-//         categoryWithTypes = decoded.map<Map<String, dynamic>>((item) {
-//           return {
-//             "category": item["category"],
-//             "types": item["types"],
-//           };
-//         }).toList();
-//       }
-
-//       // 🔹 Step 1: Fetch issue categories from API
-//       IssueCategoryResponseModel categoryResponse =
-//           await ProjectRepo().issueCategoryRepo();
-
-//       if (categoryResponse.data != null && categoryResponse.data!.isNotEmpty) {
-//         issueCategoryList = categoryResponse.data!;
-
-//         // 🔹 Step 2: Check each category against local storage
-//         for (var category in issueCategoryList) {
-//           bool existsInLocal = categoryWithTypes.any((item) {
-//             return item["category"]["name"]?.toString() == category.name;
-//           });
-
-//           if (!existsInLocal) {
-//             // If new category, fetch its types
-//             IssueTypeResponseModel typeResponse =
-//                 await ProjectRepo().issueTypeRepo(
-//               body: {"issue_category_id": category.id},
-//             );
-
-//             List<IssueTypeData> types = [];
-//             if (typeResponse.data != null && typeResponse.data!.isNotEmpty) {
-//               types = typeResponse.data!;
-//             }
-
-//             categoryWithTypes.add({
-//               "category": category.toJson(),
-//               "types": types.map((t) => t.toJson()).toList(),
-//             });
-//           }
-//         }
-
-//         // 🔹 Step 3: Store updated combined data in local storage
-//         String encodedData = jsonEncode(categoryWithTypes);
-//         log('issueCategoriesWithTypes::::STORE_IN_LOCALLY::::$encodedData');
-//         preferences.putString(
-//             SharedPreference.issueCategoriesWithTypes, encodedData);
-
-//         _issueDataResponse = ApiResponse.complete(categoryWithTypes);
-//       } else {
-//         _issueDataResponse =
-//             ApiResponse.error(message: 'No issue categories found');
-//       }
-//     } catch (e, st) {
-//       log("❌ Error fetching issue categories/types: $e");
-//       log("Stacktrace: $st");
-//       _issueDataResponse = ApiResponse.error(message: e.toString());
-//     }
-
-//     update();
-//   }
-
-//   /// Optional: read back from local storage
-//   void loadIssueDataFromLocal() {
-//     String? resData =
-//         preferences.getString(SharedPreference.issueCategoriesWithTypes);
-//     if (resData != null && resData.isNotEmpty) {
-//       List<dynamic> decoded = jsonDecode(resData);
-//       categoryWithTypes = decoded.map<Map<String, dynamic>>((item) {
-//         return {
-//           "category": item["category"],
-//           "types": item["types"],
-//         };
-//       }).toList();
-
-//       _issueDataResponse = ApiResponse.complete(categoryWithTypes);
-//       update();
-//     }
-//   }
-// }
-
-/// Updated file for offline img
 import 'dart:convert';
 import 'dart:developer';
 
@@ -249,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/Repo/project_repo.dart';
+import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/impact_type_res_model.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/issue_category_res_model.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/issue_type_res_model.dart';
 import 'package:jhamtani_app/Api/ResponseModel/project_screen_res_model.dart';
@@ -257,7 +15,6 @@ import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
 import 'package:jhamtani_app/View/Controller/network_controller.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
 import 'dart:io'; // For File
-
 class HomeScreenController extends GetxController {
   final searchController = TextEditingController();
   List<ProjectDetails> projectData = [];
@@ -529,6 +286,325 @@ class HomeScreenController extends GetxController {
     update();
   }
 
+
+
+
+
+  // ============================================================
+  // IMPACT TYPE - ONLINE CACHE + OFFLINE SUPPORT
+  // ============================================================
+
+  List<ImpactTypeData> impactTypeList = [];
+
+  ApiResponse _impactTypeResponse =
+      ApiResponse.initial(message: 'Initialization');
+
+  ApiResponse get impactTypeResponse => _impactTypeResponse;
+
+  /// Fetch Impact Types from API and store them locally.
+  ///
+  /// Offline behavior:
+  /// If API is unavailable, previously cached Impact Types
+  /// are loaded from SharedPreference.impactTypes.
+  Future<void> fetchAndStoreImpactTypes() async {
+    _impactTypeResponse =
+        ApiResponse.loading(message: 'Loading impact types...');
+
+    update();
+
+    try {
+      // ========================================================
+      // STEP 0: Check existing local Impact Type data
+      // ========================================================
+
+      String? localData =
+          preferences.getString(SharedPreference.impactTypes);
+
+      log(
+        '🔹 Impact Type local data: '
+        '${localData ?? ""}',
+      );
+
+      // ========================================================
+      // STEP 1: If local data exists, load it
+      // ========================================================
+
+      if (localData != null && localData.trim().isNotEmpty) {
+        try {
+          dynamic decoded = jsonDecode(localData);
+
+          if (decoded is List) {
+            impactTypeList = decoded
+                .map(
+                  (item) => ImpactTypeData.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList();
+
+            log(
+              '📦 Impact Types loaded from LOCAL STORAGE: '
+              '${impactTypeList.length}',
+            );
+
+            for (final impact in impactTypeList) {
+              log(
+                '   Impact Type -> '
+                'key=${impact.key}, '
+                'name=${impact.name}',
+              );
+            }
+
+            _impactTypeResponse =
+                ApiResponse.complete(impactTypeList);
+
+            update();
+
+            // ----------------------------------------------------
+            // IMPORTANT:
+            // Return here because cached data is enough for
+            // offline usage.
+            // ----------------------------------------------------
+            return;
+          }
+        } catch (e) {
+          log(
+            '⚠️ Error parsing local Impact Type data: $e',
+          );
+
+          impactTypeList = [];
+        }
+      }
+
+      // ========================================================
+      // STEP 2: Local data not available
+      // Try API
+      // ========================================================
+
+      log(
+        '🌐 Impact Type local data not found. '
+        'Calling API...',
+      );
+
+      final ImpactTypeResponseModel response =
+          await ProjectRepo().impactTypeRepo();
+
+      if (response.data != null &&
+          response.data!.isNotEmpty) {
+        impactTypeList = response.data!;
+
+        log(
+          '✅ Impact Types received from API: '
+          '${impactTypeList.length}',
+        );
+
+        for (final impact in impactTypeList) {
+          log(
+            '   API Impact Type -> '
+            'key=${impact.key}, '
+            'name=${impact.name}',
+          );
+        }
+
+        _impactTypeResponse =
+            ApiResponse.complete(impactTypeList);
+
+        // ======================================================
+        // STEP 3: Store API data locally
+        // ======================================================
+
+        final String encodedData = jsonEncode(
+          impactTypeList
+              .map((impact) => impact.toJson())
+              .toList(),
+        );
+
+        final bool? saved = await preferences.putString(
+          SharedPreference.impactTypes,
+          encodedData,
+        );
+
+        log(
+          '💾 Impact Types saved locally: $saved',
+        );
+
+        log(
+          '💾 Impact Type local storage: $encodedData',
+        );
+
+        // ======================================================
+        // STEP 4: Verify local storage
+        // ======================================================
+
+        final String? verifyData =
+            preferences.getString(
+          SharedPreference.impactTypes,
+        );
+
+        log(
+          '🔍 Impact Type storage verification: '
+          '${verifyData ?? "NULL"}',
+        );
+      } else {
+        impactTypeList = [];
+
+        _impactTypeResponse = ApiResponse.error(
+          message: 'No impact types found',
+        );
+
+        log(
+          '⚠️ API returned no Impact Types',
+        );
+      }
+    } catch (e, st) {
+      // ========================================================
+      // STEP 5: API failed / Offline
+      // Try local storage again as fallback
+      // ========================================================
+
+      log(
+        '❌ Error fetching Impact Types: $e',
+      );
+
+      log(
+        '❌ Stacktrace: $st',
+      );
+
+      try {
+        final String? fallbackData =
+            preferences.getString(
+          SharedPreference.impactTypes,
+        );
+
+        log(
+          '📦 Offline Impact Type data: '
+          '${fallbackData ?? ""}',
+        );
+
+        if (fallbackData != null &&
+            fallbackData.trim().isNotEmpty) {
+          final dynamic decoded =
+              jsonDecode(fallbackData);
+
+          if (decoded is List) {
+            impactTypeList = decoded
+                .map(
+                  (item) => ImpactTypeData.fromJson(
+                    Map<String, dynamic>.from(item),
+                  ),
+                )
+                .toList();
+
+            log(
+              '✅ Offline Impact Types loaded: '
+              '${impactTypeList.length}',
+            );
+
+            _impactTypeResponse =
+                ApiResponse.complete(impactTypeList);
+          } else {
+            impactTypeList = [];
+
+            _impactTypeResponse =
+                ApiResponse.error(
+              message:
+                  'Invalid offline Impact Type data',
+            );
+          }
+        } else {
+          impactTypeList = [];
+
+          log(
+            '❌ No Impact Type data available offline',
+          );
+
+          _impactTypeResponse =
+              ApiResponse.error(
+            message:
+                'Impact types are not available offline',
+          );
+        }
+      } catch (localError, localStack) {
+        log(
+          '❌ Error loading offline Impact Types: '
+          '$localError',
+        );
+
+        log(
+          '❌ Offline Impact Type stacktrace: '
+          '$localStack',
+        );
+
+        impactTypeList = [];
+
+        _impactTypeResponse =
+            ApiResponse.error(
+          message: localError.toString(),
+        );
+      }
+    }
+
+    update();
+  }
+
+  /// Read Impact Types directly from local storage.
+  /// Use this when the app is already in offline mode.
+  void loadImpactTypesFromLocal() {
+    try {
+      final String? localData =
+          preferences.getString(
+        SharedPreference.impactTypes,
+      );
+
+      log(
+        '📦 Loading Impact Types from local: '
+        '${localData ?? ""}',
+      );
+
+      if (localData != null &&
+          localData.trim().isNotEmpty) {
+        final dynamic decoded =
+            jsonDecode(localData);
+
+        if (decoded is List) {
+          impactTypeList = decoded
+              .map(
+                (item) => ImpactTypeData.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList();
+
+          log(
+            '✅ Local Impact Types loaded: '
+            '${impactTypeList.length}',
+          );
+
+          _impactTypeResponse =
+              ApiResponse.complete(impactTypeList);
+        }
+      }
+
+      update();
+    } catch (e, st) {
+      log(
+        '❌ Error loading local Impact Types: $e',
+      );
+
+      log(
+        '❌ Stacktrace: $st',
+      );
+
+      impactTypeList = [];
+
+      _impactTypeResponse =
+          ApiResponse.error(
+        message: e.toString(),
+      );
+
+      update();
+    }
+  }
   /// Optional: read back from local storage
   void loadIssueDataFromLocal() {
     String? resData =

@@ -66,10 +66,11 @@
 
 
 import 'dart:developer';
+
+import 'package:get/get.dart';
 import 'package:jhamtani_app/Api/Apis/api_response.dart';
 import 'package:jhamtani_app/Api/Repo/project_repo.dart';
 import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/observation_history_res_model.dart';
-import 'package:get/get.dart';
 
 class ObservationHistoryController extends GetxController {
   ObservationHistory? observationHistory; // <- Now a single object
