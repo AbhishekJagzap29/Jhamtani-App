@@ -25,7 +25,6 @@ import 'package:jhamtani_app/Api/ResponseModel/HomeInspection/offline_hqi_flate_
 import 'package:jhamtani_app/View/Constant/shared_prefs.dart';
 import 'package:jhamtani_app/View/Utils/app_layout.dart';
 
-
 class AddObservationScreen extends StatefulWidget {
   const AddObservationScreen({Key? key}) : super(key: key);
 
@@ -890,27 +889,6 @@ class _AddObservationScreenState extends State<AddObservationScreen> {
     }
   }
 
-  // Future<void> _pickImageFromCamera() async {
-  //   final ImagePicker picker = ImagePicker();
-  //   final XFile? photo = await picker.pickImage(source: ImageSource.camera);
-  //   if (photo != null) {
-  //     final result = await Navigator.push(
-  //       context,
-  //       MaterialPageRoute(
-  //         builder: (_) => ImageCaptureScreen(
-  //           image: File(photo.path),
-  //           title: locationName ?? "Captured Image",
-  //         ),
-  //       ),
-  //     );
-  //     if (result != null && result is Map && result["image"] != null) {
-  //       setState(() {
-  //         imageList.add(result["image"]);
-  //       });
-  //     }
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     double h = MediaQuery.of(context).size.height;
@@ -943,17 +921,6 @@ class _AddObservationScreenState extends State<AddObservationScreen> {
                       hint: '2026-08-18',
                     ),
                   ],
-                  // children: [
-                  //   const Text('Date',
-                  //       style: TextStyle(fontWeight: FontWeight.bold)),
-                  //   const SizedBox(height: 5),
-                  //   buildSmallTextField(
-                  //     controller: dateController,
-                  //     label: '',
-                  //     hint: '06-06-2025',
-                  //     isDatePicker: true,
-                  //   ),
-                  // ],
                 ),
               ),
               SizedBox(width: w * 0.02),
@@ -1090,38 +1057,6 @@ class _AddObservationScreenState extends State<AddObservationScreen> {
             },
           ),
 
-          // GetBuilder<AddObservationController>(
-          //   builder: (controller) {
-          //     final list = controller.observationCategoryList;
-
-          //     return buildLabeledDropdown(
-          //       title: 'Impact Type',
-
-          //       // Display selected name
-          //       selectedValue: list.any((e) => e.key == selectedImpactType)
-          //           ? list.firstWhere((e) => e.key == selectedImpactType).name
-          //           : null,
-
-          //       // Show names in dropdown
-          //       items: list.map((e) => e.name ?? '').toList(),
-
-          //       onChanged: (value) {
-          //         final selected = list.firstWhere(
-          //           (e) => e.name == value,
-          //           orElse: () => ObservationCategoryData(),
-          //         );
-
-          //         setState(() {
-          //           // Save key for API
-          //           selectedImpactType = selected.key;
-          //         });
-          //       },
-          //     );
-          //   },
-          // ),
-
-          ///
-
           SizedBox(height: h * 0.015),
           const Text('Issue Description',
               style: TextStyle(
@@ -1146,80 +1081,31 @@ class _AddObservationScreenState extends State<AddObservationScreen> {
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
           ),
-          SizedBox(height: h * 0.015),
-          const Text('Remarks',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              )),
-          const SizedBox(height: 5),
-          TextFormField(
-            controller: remarkController,
-            maxLines: 3,
-            style: const TextStyle(
-              fontWeight: FontWeight.normal,
-              color: Colors.black,
-              fontSize: 15,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Enter remarks',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-          ),
-          //    SizedBox(height: h * 0.015),
-          // const Text('Impact', style: TextStyle(fontWeight: FontWeight.bold)),
+          // SizedBox(height: h * 0.015),
+          // const Text('Remarks',
+          //     style: TextStyle(
+          //       fontWeight: FontWeight.bold,
+          //       fontSize: 14,
+          //     )),
           // const SizedBox(height: 5),
-          // Container(
-          //   width: double.infinity,
-          //   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          //   decoration: BoxDecoration(
-          //     color: containerColor,
-          //     border: Border.all(color: Colors.grey),
-          //     borderRadius: BorderRadius.circular(12),
+          // TextFormField(
+          //   controller: remarkController,
+          //   maxLines: 3,
+          //   style: const TextStyle(
+          //     fontWeight: FontWeight.normal,
+          //     color: Colors.black,
+          //     fontSize: 15,
           //   ),
-          //   child: Row(
-          //     children: ['low', 'medium', 'high'].map((level) {
-          //       Color radioColor;
-          //       if (level == 'low') {
-          //         radioColor = Colors.yellow;
-          //       } else if (level == 'medium') {
-          //         radioColor = Colors.orange;
-          //       } else {
-          //         radioColor = Colors.red;
-          //       }
-          //       return Expanded(
-          //         child: RadioListTile<String>(
-          //           title: Text(
-          //             level == 'low'
-          //                 ? 'Low'
-          //                 : level == 'medium'
-          //                     ? 'Medium'
-          //                     : 'High',
-          //             style: const TextStyle(
-          //               fontSize: 14,
-          //               fontWeight: FontWeight.normal,
-          //               color: Colors.black,
-          //             ),
-          //           ),
-          //           value: level,
-          //           groupValue: impact,
-          //           contentPadding: EdgeInsets.zero,
-          //           visualDensity: VisualDensity.compact,
-          //           activeColor: radioColor,
-          //           onChanged: (val) {
-          //             setState(() {
-          //               impact = val!;
-          //             });
-          //           },
-          //         ),
-          //       );
-          //     }).toList(),
+          //   decoration: InputDecoration(
+          //     hintText: 'Enter remarks',
+          //     border:
+          //         OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          //     isDense: true,
+          //     contentPadding:
+          //         const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           //   ),
           // ),
+
           SizedBox(height: h * 0.015),
           const Text('Attach Photo',
               style: TextStyle(fontWeight: FontWeight.bold)),
@@ -1353,27 +1239,6 @@ class _AddObservationScreenState extends State<AddObservationScreen> {
                       },
                     ),
                   ),
-                // InkWell(
-                //   onTap: _pickImageFromCamera,
-                //   child: Container(
-                //     height: h * 0.09,
-                //     width: double.infinity,
-                //     decoration: BoxDecoration(
-                //       color: Colors.white,
-                //       border: Border.all(color: Colors.grey),
-                //       borderRadius: BorderRadius.circular(10),
-                //     ),
-                //     child: const Column(
-                //       mainAxisAlignment: MainAxisAlignment.center,
-                //       children: [
-                //         Icon(Icons.camera_alt, color: Colors.grey, size: 30),
-                //         SizedBox(height: 7),
-                //         Text('Add photo', style: TextStyle(color: Colors.grey)),
-                //       ],
-                //     ),
-                //   ),
-                // ),
-
                 InkWell(
                   onTap: () {
                     showModalBottomSheet(
@@ -1637,102 +1502,4 @@ class _AddObservationScreenState extends State<AddObservationScreen> {
     );
   }
 
-  // ✅ NEW IMPROVED OFFLINE DATA LOADING METHOD
-/*  Future<void> _loadOfflineDataNew() async {
-    try {
-      // 🔹 Step 1: Try to load from new offline structure first
-      String? existingData = preferences.getString(SharedPreference.hqiFlatsOfflineData) ?? '';
-
-      if (existingData.isNotEmpty) {
-        List<dynamic> decodedData = jsonDecode(existingData);
-        List<List<OfflineHQIData>> allOfflineData = decodedData.map((sublist) {
-          if (sublist is List) {
-            return sublist.map<OfflineHQIData>((item) {
-              return OfflineHQIData.fromJson(Map<String, dynamic>.from(item));
-            }).toList();
-          }
-          return <OfflineHQIData>[];
-        }).toList();
-
-        // 🔹 Step 2: Look for any pending/draft observations for this location
-        for (var flatList in allOfflineData) {
-          for (var flat in flatList) {
-            for (var location in flat.locationData ?? []) {
-              if (location.locationId == locationId) {
-                // Check for any pending observations that might be drafts
-                for (var observation in location.observations ?? []) {
-                  // Look for observations with observationId = 0 (new/draft observations)
-                  if (observation.observationId == 0 && observation.state == "pending") {
-                    // Load this draft data into the form
-                    if (observation.date != null) {
-                      dateController.text =
-                          "${observation.date!.year}-${observation.date!.month.toString().padLeft(2, '0')}-${observation.date!.day.toString().padLeft(2, '0')}";
-                    }
-                    if (observation.targetDate != null) {
-                      targetDateController.text =
-                          "${observation.targetDate!.year}-${observation.targetDate!.month.toString().padLeft(2, '0')}-${observation.targetDate!.day.toString().padLeft(2, '0')}";
-                    }
-
-                    issueDescController.text = observation.description ?? '';
-                    remarkController.text = observation.remark ?? '';
-                    impact = observation.impact ?? 'low';
-                    selectedCategory = observation.issueCategoryName;
-                    selectedIssueType = observation.issueTypeName;
-                    selectedCategoryId = observation.issueCategoryId?.toString();
-                    selectedIssueTypeId = observation.issueTypeId?.toString();
-
-                    // Load images from imgData
-                    imageList.clear();
-                    for (var imgData in observation.imgData ?? []) {
-                      if (imgData.imgUrl.isNotEmpty) {
-                        imageList.add(imgData.imgUrl);
-                      }
-                    }
-
-                    log('✅ Loaded draft observation data from offline storage');
-                    setState(() {}); // Refresh UI with loaded data
-                    return; // Exit after loading the first draft
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // 🔹 Step 3: Fallback to old SharedPreferences method if no data found in new structure
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      if (prefs.getString('date') != null) {
-        dateController.text = prefs.getString('date') ?? '';
-        locationController.text = prefs.getString('location') ?? '';
-        issueDescController.text = prefs.getString('issueDesc') ?? '';
-        targetDateController.text = prefs.getString('targetDate') ?? '';
-        remarkController.text = prefs.getString('remark') ?? '';
-        impact = prefs.getString('impact') ?? 'low';
-        imageList.addAll(prefs.getStringList('images') ?? []);
-        selectedCategoryId = prefs.getString('selectedCategoryId');
-        selectedIssueTypeId = prefs.getString('selectedIssueTypeId');
-
-        log('✅ Loaded data from old SharedPreferences method');
-        setState(() {}); // Refresh UI with loaded data
-      }
-    } catch (e) {
-      log('❌ Error loading offline data: $e');
-      // Fallback to old method in case of error
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      dateController.text = prefs.getString('date') ?? '';
-      locationController.text = prefs.getString('location') ?? '';
-      issueDescController.text = prefs.getString('issueDesc') ?? '';
-      targetDateController.text = prefs.getString('targetDate') ?? '';
-      remarkController.text = prefs.getString('remark') ?? '';
-      impact = prefs.getString('impact') ?? 'low';
-      imageList.addAll(prefs.getStringList('images') ?? []);
-      selectedCategoryId = prefs.getString('selectedCategoryId');
-      selectedIssueTypeId = prefs.getString('selectedIssueTypeId');
-    }
-  }*/
-
-  // 🔹 REMOVED: Automatic offline data submission method
-  // User will submit data manually in AttachmentDialogPopup and ShowSaveHQIScreen
-  // No automatic sync needed anymore
 }

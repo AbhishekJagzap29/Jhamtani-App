@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -47,12 +46,23 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
   String towerId = Get.arguments['tower_id']?.toString() ?? "0";
   String flatId = Get.arguments['flat_id']?.toString() ?? "0";
 
+  int visitSequence = 0;
+  String visitName = "";
+  int visitId = 0;
+
   // LocationData? locationData = Get.arguments['data'];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    final arguments = Get.arguments ?? {};
+
+    visitSequence = int.tryParse(arguments['sequence']?.toString() ?? '0') ?? 0;
+
+    visitName = arguments['visit_name']?.toString() ?? '';
+
+    visitId = int.tryParse(arguments['visit_id']?.toString() ?? '0') ?? 0;
 
     locationId = Get.arguments['location_id'];
     locationName = Get.arguments['location_name'];
@@ -183,24 +193,6 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                             ),
                             child: Column(
                               children: [
-                                // Row(
-                                //   mainAxisAlignment:
-                                //       MainAxisAlignment.spaceBetween,
-                                //   children: [
-                                //     Column(
-                                //       crossAxisAlignment:
-                                //           CrossAxisAlignment.start,
-                                //       children: [
-                                //         (locationName ?? 'Location')
-                                //             .boldRobotoTextStyle(
-                                //                 maxLine: 5, fontSize: 24),
-                                //         (towerName ?? 'Tower')
-                                //             .regularBarlowTextStyle(
-                                //                 fontSize: 12),
-                                //       ],
-                                //     ),
-                                //   ],
-                                // ),
                                 Row(
                                   children: [
                                     Expanded(
@@ -223,78 +215,7 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                     ),
                                   ],
                                 ),
-                                 (h * 0.01).addHSpace(),
-                                // Column(
-                                //   children: [
-                                //     Divider(
-                                //       color: const Color(0xffE6E6E6),
-                                //       thickness: 2,
-                                //       height: h * 0.02,
-                                //     ),
-                                //     Row(
-                                //       children: [
-                                //         'Total Count                :  '
-                                //             .boldRobotoTextStyle(fontSize: 12),
-                                //         (controller.selectedLocationData
-                                //                     ?.observationCount ??
-                                //                 0)
-                                //             .toString()
-                                //             .regularRobotoTextStyle(
-                                //                 fontSize: 10),
-                                //       ],
-                                //     ),
-                                //     Row(
-                                //       children: [
-                                //         'Pending Count          :  '
-                                //             .boldRobotoTextStyle(fontSize: 12),
-                                //         //   (preferences.getString(SharedPreference.userType) == "hqi_maker"
-                                //         ((preferences
-                                //                         .getString(
-                                //                             SharedPreference
-                                //                                 .userType)
-                                //                         ?.contains(
-                                //                             "hqi_maker") ??
-                                //                     false)
-                                //                 ? (controller
-                                //                         .selectedLocationData
-                                //                         ?.makerPendingCount ??
-                                //                     0)
-                                //                 : (controller
-                                //                         .selectedLocationData
-                                //                         ?.checkerPendingCount ??
-                                //                     0))
-                                //             .toString()
-                                //             .regularRobotoTextStyle(
-                                //                 fontSize: 10),
-                                //       ],
-                                //     ),
-                                //     Row(
-                                //       children: [
-                                //         'Completed Count    :  '
-                                //             .boldRobotoTextStyle(fontSize: 12),
-                                //         //  (preferences.getString(SharedPreference.userType) == "hqi_maker"
-                                //         ((preferences
-                                //                         .getString(
-                                //                             SharedPreference
-                                //                                 .userType)
-                                //                         ?.contains(
-                                //                             "hqi_maker") ??
-                                //                     false)
-                                //                 ? (controller
-                                //                         .selectedLocationData
-                                //                         ?.makerCompletedCount ??
-                                //                     0)
-                                //                 : (controller
-                                //                         .selectedLocationData
-                                //                         ?.checkerCompletedCount ??
-                                //                     0))
-                                //             .toString()
-                                //             .regularRobotoTextStyle(
-                                //                 fontSize: 10),
-                                //       ],
-                                //     ),
-                                //   ],
-                                // ),
+                                (h * 0.01).addHSpace(),
                               ],
                             ),
                           ),
@@ -329,154 +250,157 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                             ],
                           ),
                           const SizedBox(height: 10),
-                          if (preferences
-                                  .getString(SharedPreference.userType) ==
-                              "hqi_checker")
+                          // if (preferences
+                          //         .getString(SharedPreference.userType) ==
+                          //     "hqi_checker")
 
-                            // if (preferences.getString(SharedPreference.hqiUserType) == "hqi_checker" ||
-                            //     preferences.getString(SharedPreference.hqiUserType) == "hqi_approver")
+                          //   // if (preferences.getString(SharedPreference.hqiUserType) == "hqi_checker" ||
+                          //   //     preferences.getString(SharedPreference.hqiUserType) == "hqi_approver")
 
-                            GetBuilder<FlatSubLocationController>(
-                                builder: (controller) {
-                              final isSelection = controller.selectionMode;
-                              return Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // =========================
-                                  // RIGHT SIDE BUTTONS
-                                  // =========================
-                                  Flexible(
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children: [
-                                          // =========================
-                                          // SELECT / CANCEL BUTTON (MATCH UI)
-                                          // =========================
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: containerColor,
-                                              foregroundColor: Colors.black,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(30),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 18,
-                                                      vertical: 10),
-                                            ),
-                                            onPressed:
-                                                controller.toggleSelectionMode,
-                                            child: Text(isSelection
-                                                ? "Cancel"
-                                                : "Select"),
-                                          ),
+                          //   GetBuilder<FlatSubLocationController>(
+                          //       builder: (controller) {
+                          //     final isSelection = controller.selectionMode;
+                          //     return Row(
+                          //       mainAxisAlignment:
+                          //           MainAxisAlignment.end,
+                          //       children: [
+                          //         // =========================
+                          //         // RIGHT SIDE BUTTONS
+                          //         // =========================
+                          //         // Flexible(
+                          //         //   child: SingleChildScrollView(
+                          //         //     scrollDirection: Axis.horizontal,
+                          //         //     child: Row(
+                          //         //       children: [
+                          //         //         // =========================
+                          //         //         // SELECT / CANCEL BUTTON (MATCH UI)
+                          //         //         // =========================
+                          //         //         ElevatedButton(
+                          //         //           style: ElevatedButton.styleFrom(
+                          //         //             backgroundColor: containerColor,
+                          //         //             foregroundColor: Colors.black,
+                          //         //             shape: RoundedRectangleBorder(
+                          //         //               borderRadius:
+                          //         //                   BorderRadius.circular(30),
+                          //         //             ),
+                          //         //             padding:
+                          //         //                 const EdgeInsets.symmetric(
+                          //         //                     horizontal: 18,
+                          //         //                     vertical: 10),
+                          //         //           ),
+                          //         //           onPressed:
+                          //         //               controller.toggleSelectionMode,
+                          //         //           child: Text(isSelection
+                          //         //               ? "Cancel"
+                          //         //               : "Select"),
+                          //         //         ),
 
-                                          const SizedBox(width: 10),
+                          //         //         const SizedBox(width: 10),
 
-                                          // =========================
-                                          // SUBMIT BUTTON (MATCH STYLE TOO)
-                                          // =========================
-                                          if (isSelection)
-                                            ElevatedButton(
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: containerColor,
-                                                foregroundColor: Colors.black,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(30),
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 18,
-                                                        vertical: 10),
-                                              ),
-                                              onPressed: controller
-                                                      .selectedObservations
-                                                      .isEmpty
-                                                  ? null
-                                                  : () {
-                                                      controller
-                                                          .submitBulkReturnToMaker();
-                                                    },
-                                              child: Text(
-                                                "Submit (${controller.selectedObservations.length})",
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
+                          //         //         // =========================
+                          //         //         // SUBMIT BUTTON (MATCH STYLE TOO)
+                          //         //         // =========================
+                          //         //         if (isSelection)
+                          //         //           ElevatedButton(
+                          //         //             style: ElevatedButton.styleFrom(
+                          //         //               backgroundColor: containerColor,
+                          //         //               foregroundColor: Colors.black,
+                          //         //               shape: RoundedRectangleBorder(
+                          //         //                 borderRadius:
+                          //         //                     BorderRadius.circular(30),
+                          //         //               ),
+                          //         //               padding:
+                          //         //                   const EdgeInsets.symmetric(
+                          //         //                       horizontal: 18,
+                          //         //                       vertical: 10),
+                          //         //             ),
+                          //         //             onPressed: controller
+                          //         //                     .selectedObservations
+                          //         //                     .isEmpty
+                          //         //                 ? null
+                          //         //                 : () {
+                          //         //                     controller
+                          //         //                         .submitBulkReturnToMaker();
+                          //         //                   },
+                          //         //             child: Text(
+                          //         //               "Submit (${controller.selectedObservations.length})",
+                          //         //             ),
+                          //         //           ),
+                          //         //       ],
+                          //         //     ),
+                          //         //   ),
+                          //         // ),
+
+                          //         // ADD OBSERVATION BUTTON
+
+                          //         ElevatedButton(
+                          //           style: ElevatedButton.styleFrom(
+                          //             backgroundColor: containerColor,
+                          //             foregroundColor: Colors.black,
+                          //             shape: RoundedRectangleBorder(
+                          //               borderRadius: BorderRadius.circular(30),
+                          //             ),
+                          //             padding: const EdgeInsets.symmetric(
+                          //                 horizontal: 18, vertical: 10),
+                          //           ),
+                          //           onPressed: () async {
+                          //             await Get.toNamed(
+                          //               Routes.addObservationScreen,
+                          //               arguments: {
+                          //                 'location_id': locationId,
+                          //                 'location_name': locationName,
+                          //                 'project_id': projectId,
+                          //                 'tower_id': towerId,
+                          //                 'flat_id': flatId,
+                          //                 'tower_name': towerName,
+                          //                 'name': category,
+                          //                 'offline': isOffline,
+                          //               },
+                          //             );
+                          //             _refreshData();
+                          //           },
+                          //           child: const Text('Add Observation'),
+                          //         ),
+                          //       ],
+                          //     );
+                          //   }),
+                          const SizedBox(height: 10),
+                          // if (preferences
+                          //         .getString(SharedPreference.userType) ==
+                          //     "hqi_checker")
+                        if (preferences.getString(SharedPreference.userType) == "hqi_checker" &&
+    visitSequence != 3)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 200),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: containerColor,
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
                                   ),
-
-                                  // ADD OBSERVATION BUTTON
-
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: containerColor,
-                                      foregroundColor: Colors.black,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 18, vertical: 10),
-                                    ),
-                                    onPressed: () async {
-                                      await Get.toNamed(
-                                        Routes.addObservationScreen,
-                                        arguments: {
-                                          'location_id': locationId,
-                                          'location_name': locationName,
-                                          'project_id': projectId,
-                                          'tower_id': towerId,
-                                          'flat_id': flatId,
-                                          'tower_name': towerName,
-                                          'name': category,
-                                          'offline': isOffline,
-                                        },
-                                      );
-                                      _refreshData();
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 12),
+                                ),
+                                onPressed: () async {
+                                  await Get.toNamed(
+                                    Routes.addObservationScreen,
+                                    arguments: {
+                                      'location_id': locationId,
+                                      'location_name': locationName,
+                                      'project_id': projectId,
+                                      'tower_id': towerId,
+                                      'flat_id': flatId,
+                                      'tower_name': towerName,
+                                      'name': category,
+                                      'offline': isOffline,
                                     },
-                                    child: const Text('Add Observation'),
-                                  ),
-                                ],
-                              );
-                            }),
-
-                          // Padding(
-                          //   padding: const EdgeInsets.only(left: 200),
-                          //   child: ElevatedButton(
-                          //     style: ElevatedButton.styleFrom(
-                          //       backgroundColor: containerColor,
-                          //       foregroundColor: Colors.black,
-                          //       shape: RoundedRectangleBorder(
-                          //         borderRadius: BorderRadius.circular(30),
-                          //       ),
-                          //       padding: const EdgeInsets.symmetric(
-                          //           horizontal: 16, vertical: 12),
-                          //     ),
-                          //     onPressed: () async {
-                          //       await Get.toNamed(
-                          //         Routes.addObservationScreen,
-                          //         arguments: {
-                          //           'location_id': locationId,
-                          //           'location_name': locationName,
-                          //           'project_id': projectId,
-                          //           'tower_id': towerId,
-                          //           'flat_id': flatId,
-                          //           'tower_name': towerName,
-                          //           'name': category,
-                          //           'offline': isOffline,
-                          //         },
-                          //       );
-
-                          //       // Refresh data when returning from Add Observation screen
-                          //       _refreshData();
-                          //     },
-                          //     child: const Text('Add Observation'),
-                          //   ),
-                          // ),
+                                  );
+                                  _refreshData();
+                                },
+                                child: const Text('Add Observation'),
+                              ),
+                            ),
 
                           SizedBox(
                             height: 20,
@@ -543,8 +467,10 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                             ).then(
                                               (value) {
                                                 log('isFlatExistOffline:::::::value:::::::::${isFlatExistOffline} : ${value}');
-                                               // if (isFlatExistOffline) {
-                                               if (isFlatExistOffline || isOffline || value == true) {
+                                                // if (isFlatExistOffline) {
+                                                if (isFlatExistOffline ||
+                                                    isOffline ||
+                                                    value == true) {
                                                   _refreshData();
                                                 }
                                               },
@@ -592,8 +518,6 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                                               : redColor,
                                                 ),
                                                 SizedBox(width: w * 0.03),
-
-                                                // 👆 Issue Category Name - tappable
                                                 Expanded(
                                                   child: Text(
                                                     obs.issueCategoryName ??
@@ -619,34 +543,6 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                                               ? yellowColor
                                                               : redColor,
                                                 ),
-
-                                                // 🎯 Impact Tag
-                                                // Container(
-                                                //   margin: const EdgeInsets
-                                                //       .symmetric(horizontal: 6),
-                                                //   padding: const EdgeInsets
-                                                //       .symmetric(
-                                                //       horizontal: 10,
-                                                //       vertical: 3),
-                                                //   decoration: BoxDecoration(
-                                                //     color: containerColor,
-                                                //     border: Border.all(
-                                                //         color: Colors.black),
-                                                //     borderRadius:
-                                                //         BorderRadius.circular(
-                                                //             8),
-                                                //   ),
-                                                //   // child: Text(
-                                                //   //   obs.impact
-                                                //   //           ?.capitalizeFirst ??
-                                                //   //       'Impact',
-                                                //   //   style: const TextStyle(
-                                                //   //       fontSize: 13,
-                                                //   //       fontWeight:
-                                                //   //           FontWeight.w500),
-                                                //   // ),
-                                                // ),
-
                                                 IconButton(
                                                   icon: const Icon(
                                                     Icons.remove_red_eye,
@@ -693,22 +589,6 @@ class _FlatSubLocationScreenState extends State<FlatSubLocationScreen>
                                             child: Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.end,
-                                              // children: [
-                                              //   AppString.lastUpdateTime
-                                              //       .semiBoldBarlowTextStyle(
-                                              //           fontSize: 11),
-                                              //   Text(
-                                              //     DateFormat('dd/MM/yyyy')
-                                              //         .format(
-                                              //       obs.date != null
-                                              //           ? DateTime.tryParse(
-                                              //                   obs.date!) ??
-                                              //               DateTime.now()
-                                              //           : DateTime.now(),
-                                              //     )
-                                              //   ),
-                                              // ],
-
                                               children: [
                                                 AppString.lastUpdateTime
                                                     .semiBoldBarlowTextStyle(

@@ -158,7 +158,7 @@ class _HQLFlatScreenState extends State<HQLFlatScreen> {
                                           ),
                                           Row(
                                             children: [
-                                              'Total Count              :  '.boldRobotoTextStyle(fontSize: 12),
+                                              'Total Observations              :  '.boldRobotoTextStyle(fontSize: 12),
                                               (controller.flatVisitList.isNotEmpty
                                                       ? controller.flatVisitList.first.totalObservationCount ?? 0
                                                       : 0)
@@ -194,7 +194,7 @@ class _HQLFlatScreenState extends State<HQLFlatScreen> {
                                           // ),
                                           Row(
                                             children: [
-                                              'Pending Count        :  '.boldRobotoTextStyle(fontSize: 12),
+                                              'Pending Observations        :  '.boldRobotoTextStyle(fontSize: 12),
                                               // (preferences.getString(SharedPreference.userType) == "hqi_maker"
                                                   ((preferences.getString(SharedPreference.userType)?.contains("hqi_maker") ?? false)
 
@@ -210,7 +210,7 @@ class _HQLFlatScreenState extends State<HQLFlatScreen> {
                                           ),
                                           Row(
                                             children: [
-                                              'Completed Count  :  '.boldRobotoTextStyle(fontSize: 12),
+                                              'Completed Observations  :  '.boldRobotoTextStyle(fontSize: 12),
                                               // (preferences.getString(SharedPreference.userType) == "hqi_maker"
                                                   ((preferences.getString(SharedPreference.userType)?.contains("hqi_maker") ?? false)
 
@@ -256,34 +256,100 @@ class _HQLFlatScreenState extends State<HQLFlatScreen> {
                                           child: Text('No activity data available!'),
                                         ),
                                       )
-                                    : ListView.builder(
-                                        padding: EdgeInsets.only(top: Responsive.isDesktop(context) ? h * 0.03 : h * 0.017),
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        shrinkWrap: true,
-                                        itemCount: controller.locationdata.length,
-                                        itemBuilder: (context, index) {
-                                          var activityData = controller.locationdata[index];
-                                          var visitId = controller.flatVisitList;
-                                          return GestureDetector(
-                                            onTap: () {
-                                              log('Tapped on ${activityData.locationName}');
-                                              Get.toNamed(
-                                                Routes.flatSubLocationScreen,
-                                                arguments: {
-                                                  'location_id': activityData.locationId,
-                                                  'location_name': activityData.locationName,
-                                                  'unit_type': activityData.unitType,
-                                                  'tower_name': towerName,
-                                                  // 'desc': activityData.desc,
-                                                  'data': activityData,
-                                                  'offline': isOffline,
+                                    // : ListView.builder(
+                                    //     padding: EdgeInsets.only(top: Responsive.isDesktop(context) ? h * 0.03 : h * 0.017),
+                                    //     physics: const NeverScrollableScrollPhysics(),
+                                    //     shrinkWrap: true,
+                                    //     itemCount: controller.locationdata.length,
+                                    //     itemBuilder: (context, index) {
+                                    //       var activityData = controller.locationdata[index];
+                                    //       var visitId = controller.flatVisitList;
+                                    //       return GestureDetector(
+                                    //         onTap: () {
+                                    //           log('Tapped on ${activityData.locationName}');
+                                    //           Get.toNamed(
+                                    //             Routes.flatSubLocationScreen,
+                                    //             arguments: {
+                                    //               'location_id': activityData.locationId,
+                                    //               'location_name': activityData.locationName,
+                                    //               'unit_type': activityData.unitType,
+                                    //               'tower_name': towerName,
+                                    //               // 'desc': activityData.desc,
+                                    //               'data': activityData,
+                                    //               'offline': isOffline,
 
-                                                  "project_id": projectId,
-                                                  "tower_id": towerId,
-                                                  "flat_id": flatId,
-                                                },
-                                              );
-                                            },
+                                    //               "project_id": projectId,
+                                    //               "tower_id": towerId,
+                                    //               "flat_id": flatId,
+                                                  
+                                    //             },
+                                    //           );
+                                    //         },
+
+
+
+                                   :ListView.builder(
+  padding: EdgeInsets.only(
+    top: Responsive.isDesktop(context) ? h * 0.03 : h * 0.017,
+  ),
+  physics: const NeverScrollableScrollPhysics(),
+  shrinkWrap: true,
+  itemCount: controller.locationdata.length,
+  itemBuilder: (context, index) {
+    final activityData = controller.locationdata[index];
+
+    // Find which Site Visit contains this location.
+    dynamic currentVisit;
+
+    for (final visit in controller.flatVisitList) {
+      final locations = visit.locationData ?? [];
+
+      final locationExists = locations.any(
+        (location) =>
+            location.locationId == activityData.locationId,
+      );
+
+      if (locationExists) {
+        currentVisit = visit;
+        break;
+      }
+    }
+
+    final int visitId = currentVisit?.visitId ?? 0;
+    final String visitName = currentVisit?.visitName ?? "";
+    final int visitSequence = currentVisit?.sequence ?? 0;
+
+    log('----------------------------------------');
+    log('Tapped Location: ${activityData.locationName}');
+    log('Location ID: ${activityData.locationId}');
+    log('Visit ID: $visitId');
+    log('Visit Name: $visitName');
+    log('Visit Sequence: $visitSequence');
+    log('----------------------------------------');
+
+    return GestureDetector(
+      onTap: () {
+        Get.toNamed(
+          Routes.flatSubLocationScreen,
+          arguments: {
+            'location_id': activityData.locationId,
+            'location_name': activityData.locationName,
+            'unit_type': activityData.unitType,
+            'tower_name': towerName,
+            'data': activityData,
+            'offline': isOffline,
+            'project_id': projectId,
+            'tower_id': towerId,
+            'flat_id': flatId,
+
+            // Correct visit information
+            'visit_id': visitId,
+            'visit_name': visitName,
+            'sequence': visitSequence,
+          },
+        );
+      },
+   
                                             child: Column(
                                               children: [
                                                 Container(

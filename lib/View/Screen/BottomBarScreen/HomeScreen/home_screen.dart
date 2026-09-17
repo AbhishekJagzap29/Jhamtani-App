@@ -87,26 +87,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 
                     title: AppString.projects.boldRobotoTextStyle(
                         fontSize: 20, fontColor: Colors.white),
-                    actions: [
-                      Tooltip(
-                        message: 'Offline',
-                        child: GestureDetector(
-                          onTap: () {
-                            Get.toNamed(Routes.showOfflineDataScreen);
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 25),
-                            child: Center(
-                              child: Icon(
-                                Icons.wifi_off_outlined,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    // actions: [
+                    //   Tooltip(
+                    //     message: 'Offline',
+                    //     child: GestureDetector(
+                    //       onTap: () {
+                    //         Get.toNamed(Routes.showOfflineDataScreen);
+                    //       },
+                    //       child: const Padding(
+                    //         padding: EdgeInsets.symmetric(horizontal: 25),
+                    //         child: Center(
+                    //           child: Icon(
+                    //             Icons.wifi_off_outlined,
+                    //             color: Colors.white,
+                    //             size: 28,
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ],
                   ),
                   backgroundColor: backGroundColor,
                   body: KeyboardVisibilityBuilder(
